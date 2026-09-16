@@ -9,6 +9,7 @@ import { loadSubsModePref, setSubsMode } from './subsMode.js';
 import { loadBossSpriteUnlocksPref } from './bossSpriteLocks.js';
 import { initPokemonCommandsScreen } from './pokemonCommands.js';
 import { initHowToPlayScreen } from './howToPlay.js';
+import { initOAuthInfo } from './oauthInfo.js';
 import { $, relocateModal, showModal, showScreen } from './utils.js';
 
 /* =========================================================
@@ -117,6 +118,7 @@ if ($('settings-back-btn')) {
 // !pokemon [nombre] de cada Pokémon disponible, en orden de Pokédex.
 initPokemonCommandsScreen();
 initHowToPlayScreen();
+initOAuthInfo();
 
 function syncVolumeUi() {
   const musicSlider = $('music-volume-slider');

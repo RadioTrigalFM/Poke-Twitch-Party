@@ -31,7 +31,25 @@ export function relocateModal() {
   if (modal.parentElement !== target) target.appendChild(modal);
 }
 
-export function showModal(title, body, actions = []) {
+// Complemento de relocateModal: al salir de pantalla completa, devuelve el
+// modal a <body> si se había movido dentro de #game-content mientras
+// estaba en pantalla completa (ver el comentario de relocateModal). Lo
+// usan los distintos modos de juego al cerrar su escena.
+export function detachModalFromGameContent() {
+  const modal = $('modal');
+  const content = $('game-content');
+  if (modal && content && content.contains(modal)) {
+    document.body.appendChild(modal);
+  }
+}
+
+// `wide`: usa la variante ancha (.modal--wide) del modal genérico, para
+// contenido más denso de lo habitual (p.ej. el panel informativo del
+// Token OAuth). Como el modal es un único elemento reutilizado por todos
+// los modales del juego, esta clase se resetea en cada llamada -si no,
+// un modal ancho dejaría "contagiada" esa anchura al siguiente modal
+// normal que se abra después-.
+export function showModal(title, body, actions = [], { wide = false } = {}) {
   relocateModal();
   $('modal-title').textContent = title;
   $('modal-body').innerHTML = body;
@@ -44,6 +62,8 @@ export function showModal(title, body, actions = []) {
     b.onclick = () => { $('modal').classList.remove('show'); a.onClick && a.onClick(); };
     actionsEl.appendChild(b);
   });
+  const modalEl = document.querySelector('#modal .modal');
+  if (modalEl) modalEl.classList.toggle('modal--wide', wide);
   $('modal').classList.add('show');
 }
 export function addScore(user, points) {

@@ -490,11 +490,64 @@ function loadSavedBossProgress() {
   return { level: 1, items: {} };
 }
 
+// NIVELES DESBLOQUEADOS — a diferencia del punto de guardado de arriba
+// (BOSS_PROGRESS_STORAGE_KEY), que se mueve hacia delante Y hacia atrás (el
+// streamer puede elegir rejugar un nivel anterior desde el lobby, ver
+// renderBossLobbyLevelPicker), este dato solo crece: guarda el nivel MÁS
+// ALTO al que se ha llegado alguna vez. Es lo que decide qué niveles se
+// pueden elegir en la pantalla de inscripción: al principio solo el 1 y,
+// cada vez que se derrota al jefe de la fase final (15) de un nivel, se
+// suma el siguiente (ver spawnNewBoss, que llama a saveBossProgress con
+// ms.bossLevel ya apuntando al nivel nuevo).
+const BOSS_UNLOCKED_LEVEL_STORAGE_KEY = 'pk_boss_unlocked_level';
+
+// Nivel más alto desbloqueado hasta ahora (1..BOSS_TOTAL_LEVELS). Si no hay
+// nada guardado, o lo guardado es inválido/corrupto, se empieza con solo el
+// nivel 1 disponible.
+function loadBossUnlockedLevel() {
+  try {
+    const raw = localStorage.getItem(BOSS_UNLOCKED_LEVEL_STORAGE_KEY);
+    const level = parseInt(raw, 10);
+    if (Number.isInteger(level) && level >= 1 && level <= BOSS_TOTAL_LEVELS) return level;
+  } catch (e) {
+    // localStorage puede no estar disponible: se asume solo el nivel 1
+  }
+  // Retrocompatibilidad: partidas anteriores a este dato no lo tienen
+  // guardado, pero sí su punto de guardado (ver BOSS_PROGRESS_STORAGE_KEY);
+  // el nivel de ese punto ya se había alcanzado, así que cuenta como
+  // desbloqueado.
+  try {
+    const parsed = JSON.parse(localStorage.getItem(BOSS_PROGRESS_STORAGE_KEY));
+    const level = parsed && parsed.level;
+    if (Number.isInteger(level) && level >= 1 && level <= BOSS_TOTAL_LEVELS) return level;
+  } catch (e) {
+    // sin progreso legible: solo el nivel 1
+  }
+  return 1;
+}
+
+// Marca `level` como alcanzado: solo escribe si supera lo ya desbloqueado
+// (este dato nunca retrocede, ni al elegir un nivel anterior en el lobby ni
+// al volver al nivel 1 tras superar el último, ver BOSS_TOTAL_LEVELS).
+function unlockBossLevel(level) {
+  if (!Number.isInteger(level) || level < 1 || level > BOSS_TOTAL_LEVELS) return;
+  if (level <= loadBossUnlockedLevel()) return;
+  try {
+    localStorage.setItem(BOSS_UNLOCKED_LEVEL_STORAGE_KEY, String(level));
+  } catch (e) {
+    // localStorage puede no estar disponible: sin persistencia, sin más
+  }
+}
+
 // Guarda el punto de guardado actual: el nivel y la fase en curso de `ms`
 // (en el instante en que se llama siempre es la fase 1 de ese nivel, ver el
 // comentario junto a BOSS_PROGRESS_STORAGE_KEY) y una copia del almacén de
 // objetos sin asignar (ver ms.itemsInventory).
 function saveBossProgress(ms) {
+  // Llegar a la fase 1 de un nivel es exactamente lo que lo desbloquea para
+  // el selector de nivel del lobby (ver BOSS_UNLOCKED_LEVEL_STORAGE_KEY), y
+  // esta función se llama siempre en ese preciso momento.
+  unlockBossLevel(ms.bossLevel);
   try {
     localStorage.setItem(BOSS_PROGRESS_STORAGE_KEY, JSON.stringify({
       level: ms.bossLevel,
@@ -1279,7 +1332,7 @@ function renderBossLobby() {
         <div class="big-count pixel" id="boss-count">0</div>
         <div style="color:var(--muted);font-size:12px;">/ ${BOSS_MAX_PLAYERS} combatientes apuntados · escribe <b style="color:var(--yellow)">!pokemon [nombre]</b> en el chat</div>
         <div style="color:var(--muted);font-size:11px;max-width:540px;margin:6px auto 0;line-height:1.6;">
-          Os enfrentaréis, de uno en uno, contra <b style="color:var(--red)">${escapeHtml(b.name)}</b> y, cuando caiga, contra
+          Os enfrentaréis, de uno en uno, contra <b style="color:var(--red)" id="boss-lobby-boss-name">${escapeHtml(b.name)}</b> y, cuando caiga, contra
           el siguiente jefe, y el siguiente... ¡sin parar! El streamer elegirá con quién lucha el jefe en cada duelo;
           si tu Pokémon cae, puedes volver a ser elegido más adelante con la vida repuesta.
         </div>
@@ -1294,6 +1347,17 @@ function renderBossLobby() {
       <div class="boss-lobby-actions">
         <button class="btn-secondary boss-addbot-btn" id="boss-addbot-btn">🤖 Añadir Bot</button>
         <button class="boss-start-btn" id="boss-start-btn" disabled>▶ Comenzar Combate</button>
+        <!-- Selector de nivel: a la DERECHA de "Comenzar Combate" (ver
+             .boss-lobby-actions en styles.css, que lo mantiene en esa
+             posición sin descentrar el botón principal). Despliega la lista
+             de niveles, con los todavía no desbloqueados deshabilitados
+             (ver BOSS_UNLOCKED_LEVEL_STORAGE_KEY). -->
+        <div class="boss-levelpick" id="boss-levelpick">
+          <button class="btn-secondary boss-levelpick-btn" id="boss-levelpick-btn" aria-haspopup="listbox" aria-expanded="false">
+            🎚️ Nivel <b id="boss-levelpick-current">${state.modeState.bossLevel}</b> <span class="boss-levelpick-caret">▾</span>
+          </button>
+          <div class="boss-levelpick-menu" id="boss-levelpick-menu" role="listbox" hidden></div>
+        </div>
       </div>
     </div>
   `;
@@ -1302,7 +1366,115 @@ function renderBossLobby() {
   $('boss-afk-checkbox').onchange = (e) => {
     if (state.modeState) state.modeState.bossAfk = !!e.target.checked;
   };
+  $('boss-levelpick-btn').onclick = (ev) => {
+    ev.stopPropagation();
+    toggleBossLobbyLevelPicker();
+  };
+  renderBossLobbyLevelPicker();
   renderBossLobbyGrid();
+}
+
+/* ---------------------------------------------------------
+   SELECTOR DE NIVEL DEL LOBBY
+   -----------------------------------------------------------
+   Permite al streamer empezar la partida en cualquier nivel al que ya haya
+   tenido acceso alguna vez (ver BOSS_UNLOCKED_LEVEL_STORAGE_KEY /
+   loadBossUnlockedLevel): al principio solo el nivel 1 y, a partir de ahí,
+   uno más por cada jefe de fase final (15) derrotado. Los niveles aún no
+   desbloqueados aparecen en la lista, pero con el candado y sin poder
+   pulsarse, para que se vea lo que queda por delante.
+   --------------------------------------------------------- */
+
+// Rellena el desplegable con un botón por nivel (1..BOSS_TOTAL_LEVELS).
+function renderBossLobbyLevelPicker() {
+  const ms = state.modeState;
+  const menu = $('boss-levelpick-menu');
+  if (!ms || !menu) return;
+  const unlocked = loadBossUnlockedLevel();
+  const rows = [];
+  for (let level = 1; level <= BOSS_TOTAL_LEVELS; level++) {
+    const isUnlocked = level <= unlocked;
+    const isCurrent = level === ms.bossLevel;
+    const cls = 'boss-levelpick-opt' + (isCurrent ? ' is-current' : '') + (isUnlocked ? '' : ' is-locked');
+    const label = isUnlocked ? `Nivel ${level}` : `🔒 Nivel ${level}`;
+    rows.push(`<button type="button" class="${cls}" role="option" aria-selected="${isCurrent}" data-level="${level}"${isUnlocked ? '' : ' disabled'}>${label}</button>`);
+  }
+  menu.innerHTML = rows.join('');
+  menu.querySelectorAll('.boss-levelpick-opt:not(.is-locked)').forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      closeBossLobbyLevelPicker();
+      selectBossLobbyLevel(parseInt(btn.dataset.level, 10));
+    };
+  });
+}
+
+// Cierra el desplegable si se hace clic en cualquier otro sitio (se añade
+// solo mientras está abierto, ver openBossLobbyLevelPicker).
+function bossLevelPickerOutsideClick(ev) {
+  const picker = $('boss-levelpick');
+  if (picker && picker.contains(ev.target)) return;
+  closeBossLobbyLevelPicker();
+}
+
+function toggleBossLobbyLevelPicker() {
+  const menu = $('boss-levelpick-menu');
+  if (!menu) return;
+  if (menu.hidden) {
+    renderBossLobbyLevelPicker();
+    menu.hidden = false;
+    const btn = $('boss-levelpick-btn');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+    document.addEventListener('click', bossLevelPickerOutsideClick);
+  } else {
+    closeBossLobbyLevelPicker();
+  }
+}
+
+function closeBossLobbyLevelPicker() {
+  const menu = $('boss-levelpick-menu');
+  document.removeEventListener('click', bossLevelPickerOutsideClick);
+  if (menu) menu.hidden = true;
+  const btn = $('boss-levelpick-btn');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+// Cambia el nivel con el que va a arrancar la partida desde el lobby: se
+// sortea un jefe nuevo de la pool de ese nivel (ver getBossLevelPool) con
+// las estadísticas base de siempre —el bando enemigo empieza cada partida
+// sin mejoras acumuladas, igual que en startBoss— y se actualiza el punto
+// de guardado, para que salir del modo y volver a entrar mantenga el nivel
+// elegido. No se reconstruye el lobby entero (eso destruiría los sprites
+// PMD ya animados de los combatientes apuntados): solo se refrescan los
+// textos afectados.
+function selectBossLobbyLevel(level) {
+  const ms = state.modeState;
+  if (!ms || ms.phase !== 'lobby') return;
+  if (!Number.isInteger(level) || level < 1 || level > BOSS_TOTAL_LEVELS) return;
+  if (level > loadBossUnlockedLevel()) return;
+  if (level === ms.bossLevel) return;
+
+  ms.bossLevel = level;
+  ms.bossStage = 1;
+  const pool = getBossLevelPool(level, ARENA_POKEMON_DB);
+  const bossTemplate = pool[Math.floor(Math.random() * pool.length)];
+  ms.enemyLevels = freshLevels();
+  const bossStats = effectiveStats(BOSS_ATK, BOSS_HP, BOSS_ATK_SPEED_MS, ms.enemyLevels);
+  ms.boss = { ...bossTemplate, atk: bossStats.atk, currentHp: bossStats.maxHp, maxHp: bossStats.maxHp };
+  ms.boss2 = null;
+  saveBossProgress(ms);
+
+  const currentEl = $('boss-levelpick-current');
+  if (currentEl) currentEl.textContent = String(level);
+  const nameEl = $('boss-lobby-boss-name');
+  if (nameEl) nameEl.textContent = bossTemplate.name;
+  // La etiqueta "Nivel N" de cada tarjeta del lobby refleja el nivel de la
+  // partida (ver renderBossLobbyGrid), así que se actualiza aquí también.
+  Object.values(ms.lobbySprites || {}).forEach(entry => {
+    const levelEl = entry && entry.el && entry.el.querySelector('.p-level');
+    if (levelEl) levelEl.textContent = `Nivel ${level}`;
+  });
+  addChatMessage(null, `🎚️ El streamer ha elegido el Nivel ${level}: ¡${bossTemplate.name} os espera en la Fase 1/${BOSS_STAGES_PER_LEVEL}!`, 'system');
 }
 
 // Renderizado incremental: cada combatiente tiene su propia tarjeta con un
@@ -2143,6 +2315,10 @@ function startBossFight() {
     toast('Se necesita al menos 1 combatiente para empezar');
     return;
   }
+  // El selector de nivel solo tiene sentido en el lobby: se cierra aquí
+  // para retirar también su listener de clics en el documento (ver
+  // closeBossLobbyLevelPicker).
+  closeBossLobbyLevelPicker();
   // El lobby (y sus sprites PMD) deja de existir al pasar al combate: cada
   // combatiente ya tiene fijado su puesto interno desde que se apuntó (ver
   // handleBossJoin), sin haberlo visto representado en ningún momento del

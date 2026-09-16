@@ -104,7 +104,7 @@ const PASAPALABRA_QUESTION_BANK = {
     { q: 'Megapiedra que permite megaevolucionar a Emboar', a: 'Emboarita', prefix: 'Empieza por E' },
     { q: 'El trío de las nubes dejó de ser un trío por culpa de este Pokémon', a: 'Enamorus', prefix: 'Empieza por E' },
     { q: 'Habilidad que permite golpear siempre el número máximo de veces', a: 'Encadenado', prefix: 'Empieza por E' },
-    { q: 'Bosque de Johto en el que debemos encontrar a Farfetch'd sin asustarlo', a: 'Encinar', prefix: 'Empieza por E' },
+    { q: "Bosque de Johto en el que debemos encontrar a Farfetch'd sin asustarlo", a: 'Encinar', prefix: 'Empieza por E' },
     { q: 'Pokémon legendario con un papel principal en la película "El hechizo de los Unown"', a: 'Entei', prefix: 'Empieza por E' },
     { q: 'Habilidad que aumenta el ataque del Pokémon pero reduce su precisión', a: 'Entusiasmo', prefix: 'Empieza por E' },
     { q: 'Movimiento de tipo agua introducido en quinta generación que puede llegar a quemar al objetivo', a: 'Escaldar', prefix: 'Empieza por E' },

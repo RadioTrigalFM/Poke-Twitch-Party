@@ -747,6 +747,39 @@
     border: 2px solid var(--dark-3);
   }
   .connect-box input:focus { border-color: var(--yellow); }
+  /* Fila "label + icono de ayuda" del campo OAuth Token: reemplaza al
+     <label> suelto como hijo directo de .connect-box, así que el gap del
+     flex-column del contenedor sigue espaciándolo igual que antes. */
+  .label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .label-row label { margin: 0; }
+  .info-icon-btn {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--dark-3);
+    color: var(--yellow);
+    border: 1px solid var(--dark-3);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s;
+    padding: 0;
+  }
+  .info-icon-btn:hover {
+    background: rgba(255,203,5,.15);
+    border-color: var(--yellow);
+    transform: scale(1.1);
+  }
   .btn-primary {
     background: var(--red);
     color: #fff;
@@ -4374,6 +4407,69 @@
     opacity: .5;
     cursor: not-allowed;
   }
+  /* Selector de nivel del lobby (ver renderBossLobbyLevelPicker en
+     modes/boss.js): va a la derecha de "Comenzar Combate" dentro de la
+     misma fila de acciones. El contenedor es el ancla del desplegable, que
+     se abre HACIA ARRIBA y en posición absoluta para no empujar ni
+     descentrar la fila de botones al aparecer. */
+  .boss-levelpick {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .boss-levelpick-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .boss-levelpick-btn b { color: var(--yellow); }
+  .boss-levelpick-caret { font-size: 10px; opacity: .8; }
+  .boss-levelpick-menu {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(104px, 1fr));
+    gap: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 8px;
+    background: var(--dark-2);
+    border: 2px solid var(--dark-3);
+    border-radius: 12px;
+    box-shadow: 0 10px 26px rgba(0,0,0,.55);
+  }
+  .boss-levelpick-menu[hidden] { display: none; }
+  .boss-levelpick-opt {
+    background: var(--dark-3);
+    color: var(--text);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .boss-levelpick-opt:hover:not(.is-locked) {
+    border-color: var(--yellow);
+  }
+  /* Nivel con el que arrancaría la partida ahora mismo (ver ms.bossLevel). */
+  .boss-levelpick-opt.is-current {
+    background: linear-gradient(180deg, var(--red), #a3220a);
+    color: #fff;
+  }
+  /* Nivel todavía no alcanzado (ver loadBossUnlockedLevel): se muestra para
+     que se vea lo que queda por delante, pero no se puede elegir. */
+  .boss-levelpick-opt.is-locked {
+    opacity: .4;
+    cursor: not-allowed;
+    color: var(--muted);
+  }
   /* Tarjeta de un combatiente CPU en el lobby (ver addBossBot): mismo
      diseño que una tarjeta normal, con un borde discontinuo para
      distinguirla a simple vista de los combatientes apuntados por chat. */
@@ -5968,6 +6064,71 @@
     gap: 10px;
     justify-content: center;
   }
+  /* Variante ancha del modal genérico, usada por el panel informativo del
+     Token OAuth (mucho más contenido que el resto de modales): mismo
+     look&feel, solo cambia el ancho máximo. */
+  .modal.modal--wide {
+    max-width: 760px;
+  }
+  /* Contenido del panel informativo del Token OAuth: reutiliza las mismas
+     clases .howto-* del modo "Cómo Jugar" (intro, tarjetas de comandos,
+     secciones) para que se vea consistente con el resto del juego, pero
+     forzando texto a la izquierda (el modal genérico centra por defecto)
+     y con scroll propio para no desbordar la pantalla en móvil. */
+  .oauth-info-body {
+    text-align: left;
+    max-height: 65vh;
+    overflow-y: auto;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .oauth-info-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: rgba(255,69,32,.12);
+    border: 2px solid var(--red);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: left;
+  }
+  .oauth-info-warning-icon { font-size: 20px; line-height: 1; flex-shrink: 0; }
+  .oauth-info-warning-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+    margin: 0;
+  }
+  .oauth-info-warning-text b { color: var(--red); }
+  .oauth-mode-msg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+  }
+  .oauth-mode-msg-card {
+    background: var(--dark-3);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .oauth-mode-msg-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--yellow);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 6px;
+  }
+  .oauth-mode-msg-line {
+    font-family: 'Courier New', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height: 1.6;
+    word-break: break-word;
+  }
+  .oauth-mode-msg-line + .oauth-mode-msg-line { margin-top: 4px; }
 
   /* ---------- Scrollbars ---------- */
   ::-webkit-scrollbar { width: 8px; }

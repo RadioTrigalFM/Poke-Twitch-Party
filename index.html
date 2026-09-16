@@ -6,7 +6,7 @@
 <title>PokéTwitch Party</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/press-start-2p@latest/latin.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/inter@latest/latin.css">
-<link rel="stylesheet" href="css/styles.css?v=22">
+<link rel="stylesheet" href="css/styles.css?v=24">
 </head>
 <body>
 
@@ -20,7 +20,10 @@
   <div class="connect-box">
     <label>Canal de Twitch</label>
     <input type="text" id="channel-input" placeholder="nombre_del_canal" autocomplete="off">
-    <label>OAuth Token (opcional)</label>
+    <div class="label-row">
+      <label>OAuth Token (opcional)</label>
+      <button type="button" class="info-icon-btn" id="oauth-info-btn" aria-label="¿Qué es el Token OAuth?">?</button>
+    </div>
     <input type="password" id="token-input" placeholder="oauth:xxxxxxxxxxxx">
     <div id="connect-status" class="status"></div>
     <button class="btn-primary" id="connect-btn">Conectar y Jugar</button>
@@ -266,6 +269,6 @@
   </div>
 </div>
 
-<script src="js/bundle.js?v=64"></script>
+<script src="js/bundle.js?v=66"></script>
 </body>
 </html>

@@ -231,7 +231,7 @@
       document.body.appendChild(modal);
     }
   }
-  function showModal(title, body, actions = []) {
+  function showModal(title, body, actions = [], { wide = false } = {}) {
     relocateModal();
     $("modal-title").textContent = title;
     $("modal-body").innerHTML = body;
@@ -247,6 +247,8 @@
       };
       actionsEl.appendChild(b);
     });
+    const modalEl = document.querySelector("#modal .modal");
+    if (modalEl) modalEl.classList.toggle("modal--wide", wide);
     $("modal").classList.add("show");
   }
   function addScore(user, points) {
@@ -6824,7 +6826,32 @@
     }
     return { level: 1, items: {} };
   }
+  var BOSS_UNLOCKED_LEVEL_STORAGE_KEY = "pk_boss_unlocked_level";
+  function loadBossUnlockedLevel() {
+    try {
+      const raw = localStorage.getItem(BOSS_UNLOCKED_LEVEL_STORAGE_KEY);
+      const level = parseInt(raw, 10);
+      if (Number.isInteger(level) && level >= 1 && level <= BOSS_TOTAL_LEVELS) return level;
+    } catch (e) {
+    }
+    try {
+      const parsed = JSON.parse(localStorage.getItem(BOSS_PROGRESS_STORAGE_KEY));
+      const level = parsed && parsed.level;
+      if (Number.isInteger(level) && level >= 1 && level <= BOSS_TOTAL_LEVELS) return level;
+    } catch (e) {
+    }
+    return 1;
+  }
+  function unlockBossLevel(level) {
+    if (!Number.isInteger(level) || level < 1 || level > BOSS_TOTAL_LEVELS) return;
+    if (level <= loadBossUnlockedLevel()) return;
+    try {
+      localStorage.setItem(BOSS_UNLOCKED_LEVEL_STORAGE_KEY, String(level));
+    } catch (e) {
+    }
+  }
   function saveBossProgress(ms) {
+    unlockBossLevel(ms.bossLevel);
     try {
       localStorage.setItem(BOSS_PROGRESS_STORAGE_KEY, JSON.stringify({
         level: ms.bossLevel,
@@ -7329,7 +7356,7 @@
         <div class="big-count pixel" id="boss-count">0</div>
         <div style="color:var(--muted);font-size:12px;">/ ${BOSS_MAX_PLAYERS} combatientes apuntados \xB7 escribe <b style="color:var(--yellow)">!pokemon [nombre]</b> en el chat</div>
         <div style="color:var(--muted);font-size:11px;max-width:540px;margin:6px auto 0;line-height:1.6;">
-          Os enfrentar\xE9is, de uno en uno, contra <b style="color:var(--red)">${escapeHtml(b.name)}</b> y, cuando caiga, contra
+          Os enfrentar\xE9is, de uno en uno, contra <b style="color:var(--red)" id="boss-lobby-boss-name">${escapeHtml(b.name)}</b> y, cuando caiga, contra
           el siguiente jefe, y el siguiente... \xA1sin parar! El streamer elegir\xE1 con qui\xE9n lucha el jefe en cada duelo;
           si tu Pok\xE9mon cae, puedes volver a ser elegido m\xE1s adelante con la vida repuesta.
         </div>
@@ -7344,6 +7371,17 @@
       <div class="boss-lobby-actions">
         <button class="btn-secondary boss-addbot-btn" id="boss-addbot-btn">\u{1F916} A\xF1adir Bot</button>
         <button class="boss-start-btn" id="boss-start-btn" disabled>\u25B6 Comenzar Combate</button>
+        <!-- Selector de nivel: a la DERECHA de "Comenzar Combate" (ver
+             .boss-lobby-actions en styles.css, que lo mantiene en esa
+             posici\xF3n sin descentrar el bot\xF3n principal). Despliega la lista
+             de niveles, con los todav\xEDa no desbloqueados deshabilitados
+             (ver BOSS_UNLOCKED_LEVEL_STORAGE_KEY). -->
+        <div class="boss-levelpick" id="boss-levelpick">
+          <button class="btn-secondary boss-levelpick-btn" id="boss-levelpick-btn" aria-haspopup="listbox" aria-expanded="false">
+            \u{1F39A}\uFE0F Nivel <b id="boss-levelpick-current">${state.modeState.bossLevel}</b> <span class="boss-levelpick-caret">\u25BE</span>
+          </button>
+          <div class="boss-levelpick-menu" id="boss-levelpick-menu" role="listbox" hidden></div>
+        </div>
       </div>
     </div>
   `;
@@ -7352,7 +7390,84 @@
     $("boss-afk-checkbox").onchange = (e) => {
       if (state.modeState) state.modeState.bossAfk = !!e.target.checked;
     };
+    $("boss-levelpick-btn").onclick = (ev) => {
+      ev.stopPropagation();
+      toggleBossLobbyLevelPicker();
+    };
+    renderBossLobbyLevelPicker();
     renderBossLobbyGrid();
+  }
+  function renderBossLobbyLevelPicker() {
+    const ms = state.modeState;
+    const menu = $("boss-levelpick-menu");
+    if (!ms || !menu) return;
+    const unlocked = loadBossUnlockedLevel();
+    const rows = [];
+    for (let level = 1; level <= BOSS_TOTAL_LEVELS; level++) {
+      const isUnlocked = level <= unlocked;
+      const isCurrent = level === ms.bossLevel;
+      const cls = "boss-levelpick-opt" + (isCurrent ? " is-current" : "") + (isUnlocked ? "" : " is-locked");
+      const label = isUnlocked ? `Nivel ${level}` : `\u{1F512} Nivel ${level}`;
+      rows.push(`<button type="button" class="${cls}" role="option" aria-selected="${isCurrent}" data-level="${level}"${isUnlocked ? "" : " disabled"}>${label}</button>`);
+    }
+    menu.innerHTML = rows.join("");
+    menu.querySelectorAll(".boss-levelpick-opt:not(.is-locked)").forEach((btn) => {
+      btn.onclick = (ev) => {
+        ev.stopPropagation();
+        closeBossLobbyLevelPicker();
+        selectBossLobbyLevel(parseInt(btn.dataset.level, 10));
+      };
+    });
+  }
+  function bossLevelPickerOutsideClick(ev) {
+    const picker = $("boss-levelpick");
+    if (picker && picker.contains(ev.target)) return;
+    closeBossLobbyLevelPicker();
+  }
+  function toggleBossLobbyLevelPicker() {
+    const menu = $("boss-levelpick-menu");
+    if (!menu) return;
+    if (menu.hidden) {
+      renderBossLobbyLevelPicker();
+      menu.hidden = false;
+      const btn = $("boss-levelpick-btn");
+      if (btn) btn.setAttribute("aria-expanded", "true");
+      document.addEventListener("click", bossLevelPickerOutsideClick);
+    } else {
+      closeBossLobbyLevelPicker();
+    }
+  }
+  function closeBossLobbyLevelPicker() {
+    const menu = $("boss-levelpick-menu");
+    document.removeEventListener("click", bossLevelPickerOutsideClick);
+    if (menu) menu.hidden = true;
+    const btn = $("boss-levelpick-btn");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+  }
+  function selectBossLobbyLevel(level) {
+    const ms = state.modeState;
+    if (!ms || ms.phase !== "lobby") return;
+    if (!Number.isInteger(level) || level < 1 || level > BOSS_TOTAL_LEVELS) return;
+    if (level > loadBossUnlockedLevel()) return;
+    if (level === ms.bossLevel) return;
+    ms.bossLevel = level;
+    ms.bossStage = 1;
+    const pool = getBossLevelPool(level, ARENA_POKEMON_DB);
+    const bossTemplate = pool[Math.floor(Math.random() * pool.length)];
+    ms.enemyLevels = freshLevels();
+    const bossStats = effectiveStats(BOSS_ATK, BOSS_HP, BOSS_ATK_SPEED_MS, ms.enemyLevels);
+    ms.boss = { ...bossTemplate, atk: bossStats.atk, currentHp: bossStats.maxHp, maxHp: bossStats.maxHp };
+    ms.boss2 = null;
+    saveBossProgress(ms);
+    const currentEl = $("boss-levelpick-current");
+    if (currentEl) currentEl.textContent = String(level);
+    const nameEl = $("boss-lobby-boss-name");
+    if (nameEl) nameEl.textContent = bossTemplate.name;
+    Object.values(ms.lobbySprites || {}).forEach((entry) => {
+      const levelEl = entry && entry.el && entry.el.querySelector(".p-level");
+      if (levelEl) levelEl.textContent = `Nivel ${level}`;
+    });
+    addChatMessage(null, `\u{1F39A}\uFE0F El streamer ha elegido el Nivel ${level}: \xA1${bossTemplate.name} os espera en la Fase 1/${BOSS_STAGES_PER_LEVEL}!`, "system");
   }
   function renderBossLobbyGrid() {
     const ms = state.modeState;
@@ -7913,6 +8028,7 @@
       toast("Se necesita al menos 1 combatiente para empezar");
       return;
     }
+    closeBossLobbyLevelPicker();
     Object.values(ms.lobbySprites).forEach((entry) => {
       entry.sprite.destroy();
       entry.el.remove();
@@ -24716,6 +24832,129 @@
     if (backBtn) backBtn.onclick = () => showScreen("menu-screen");
   }
 
+  // js/oauthInfo.js
+  var MODE_MESSAGES = [
+    { key: "pasapalabra", name: "\u{1F3AF} Pasapalabra", lines: [
+      "\u{1F512} El streamer ha bloqueado la participaci\xF3n del chat: los comandos (!<respuesta>, !puntos...) dejan de funcionar hasta que se reactive."
+    ] },
+    { key: "rayosolar", name: "\u2600\uFE0F Rayo Solar", lines: [
+      "\u2600\uFE0F \xA1Rayo Solar est\xE1 abierto! Escribe !pokemon [nombre] para apuntarte. \xA1Disponible toda la Pok\xE9dex Nacional (XXXX Pok\xE9mon)!",
+      "\u{1F3C6} \xA1@[usuario] gana Rayo Solar con [Pok\xE9mon]!"
+    ] },
+    { key: "arena", name: "\u2694\uFE0F Arena Pok\xE9mon", lines: [
+      "\u{1F3DB}\uFE0F \xA1Coliseo abierto! Escribe !pokemon [nombre] para hacer cola. \xA1Disponible toda la Pok\xE9dex Nacional (XXXX Pok\xE9mon)!",
+      "\u{1F3C6} \xA1@[usuario] gana su combate y avanza en el Torneo!",
+      "\u{1F3C6}\u{1F451} \xA1@[usuario] es el CAMPE\xD3N DEL TORNEO!"
+    ] },
+    { key: "zoroarks", name: "\u{1F98A} Zoroarks", lines: [
+      "\u{1F98A} \xA1Zoroarks abierto! Escribe !participo para apuntarte",
+      "\u{1F3C6} \xA1Gana el pueblo! @[usuario], @[usuario]... era(n) hombre lobo."
+    ] },
+    { key: "safari", name: "\u{1F33F} Zona Safari", lines: [
+      "\u{1F33F} \xA1Zona Safari abierta! Escribe !pokemon [nombre] para apuntarte. \xA1Disponible toda la Pok\xE9dex Nacional (XXXX Pok\xE9mon)!",
+      "\u{1F3C6} \xA1@[usuario], @[usuario]... sobreviven a la Zona Safari!"
+    ] },
+    { key: "boss", name: "\u{1F479} Boss Cooperativo", lines: [
+      "\u{1F479} \xA1[Jefe] os espera en el Nivel [N], Fase 1/15! Escribe !pokemon [nombre] para apuntarte a la lucha (m\xE1x. 16, toda la Pok\xE9dex Nacional disponible).",
+      "\u{1F3C6} \xA1[Jefe] ha sido derrotado! MVP: @[usuario] con [X] de da\xF1o. \xA1Repartidas recompensas!"
+    ] },
+    { key: "pokerus", name: "\u{1F9EC} Pokerus", lines: [
+      "\u{1F9EC} \xA1Modo Pokerus abierto! Escribe !pokemon [nombre] para apuntarte (\xA1disponible toda la Pok\xE9dex Nacional, XXXX Pok\xE9mon!)",
+      "\u{1F49A} \xA1El Pokerus ha sido erradicado! Sobreviven [N] jugadores"
+    ] },
+    { key: "volcan", name: "\u{1F30B} El Volc\xE1n", lines: [
+      "\u{1F30B} \xA1El Volc\xE1n est\xE1 abierto! Escribe !pokemon [nombre] para apuntarte. \xA1Disponible toda la Pok\xE9dex Nacional (XXXX Pok\xE9mon)!",
+      "\u{1F3C6} \xA1@[usuario] gana El Volc\xE1n con [Pok\xE9mon]!"
+    ] },
+    { key: "vistalince", name: "\u{1F985} Vista Lince", lines: [
+      "\u{1F985} \xA1Vista Lince abierto! Escribe !participo para apuntarte",
+      "\u{1F3C6} \xA1@[usuario] gana gracias a su vista de lince!"
+    ] },
+    { key: "extranjeria", name: "\u{1F6C2} Control de Extranjer\xEDa", lines: [
+      "\u{1F6C2} \xA1Control de Extranjer\xEDa abierto! Escribe !participo para ponerte en la cola",
+      "\u2705 @[usuario] ha sido admitido en el pa\xEDs / \u26D4 ha sido rechazado en la frontera"
+    ] },
+    { key: "voltorb", name: "\u{1F4A3} Voltorb Explosivo", lines: [
+      "\u{1F4A3} \xA1Voltorb Explosivo abierto! Escribe !participo para apuntarte (m\xE1x. 24 jugadores)",
+      "\u{1F3C6} \xA1@[usuario] gana Voltorb Explosivo siendo el \xFAltimo en pie!"
+    ] },
+    { key: "avalugg", name: "\u2744\uFE0F Glaciar de Avalugg", lines: [
+      "\u2744\uFE0F \xA1Glaciar de Avalugg abierto! Escribe !participo para apuntarte",
+      "\u{1F3C6} \xA1@[usuario] gana Glaciar de Avalugg!"
+    ] }
+  ];
+  function renderModeMessagesGrid() {
+    return MODE_MESSAGES.map((m) => `
+    <div class="oauth-mode-msg-card">
+      <div class="oauth-mode-msg-name">${m.name}</div>
+      ${m.lines.map((l) => `<div class="oauth-mode-msg-line">${l}</div>`).join("")}
+    </div>
+  `).join("");
+  }
+  function renderOAuthInfoBody() {
+    return `
+    <div class="oauth-info-body">
+      <p class="howto-intro">
+        El Token OAuth es una credencial que te da Twitch para autorizar a una cuenta a leer y escribir en el chat de tu canal en tu nombre. Sin token, Pok\xE9Twitch Party solo puede <b>leer</b> el chat para procesar los comandos de los espectadores; con un token con permiso <code>chat:edit</code>, el juego act\xFAa adem\xE1s como un bot que <b>escribe</b> en tu chat real de Twitch (aperturas de lobby, resultados de la partida, avisos...). Es completamente opcional: el juego funciona igual sin \xE9l, la \xFAnica diferencia es que esos mensajes solo se ver\xE1n en esta pantalla y no en el chat de Twitch.
+      </p>
+
+      <div class="howto-block">
+        <h3 class="howto-subtitle">\u{1F4CB} Paso a paso para usarlo</h3>
+        <div class="howto-cycle">
+          <div class="howto-cycle-step">
+            <div class="howto-cycle-num">1</div>
+            <div class="howto-cycle-icon">\u{1F310}</div>
+            <div class="howto-cycle-label">Genera el token</div>
+            <div class="howto-cycle-desc">Entra en twitchtokengenerator.com, inicia sesi\xF3n con la cuenta que quieras usar como bot (la tuya o una aparte) y genera un token marcando los scopes "chat:read" y "chat:edit".</div>
+          </div>
+          <div class="howto-cycle-arrow">\u2192</div>
+          <div class="howto-cycle-step">
+            <div class="howto-cycle-num">2</div>
+            <div class="howto-cycle-icon">\u{1F4CB}</div>
+            <div class="howto-cycle-label">C\xF3pialo entero</div>
+            <div class="howto-cycle-desc">Copia el token completo, incluido el prefijo "oauth:", y p\xE9galo en el campo "Token OAuth (opcional)" de esta pantalla junto al nombre de tu canal.</div>
+          </div>
+          <div class="howto-cycle-arrow">\u2192</div>
+          <div class="howto-cycle-step">
+            <div class="howto-cycle-num">3</div>
+            <div class="howto-cycle-icon">\u{1F50C}</div>
+            <div class="howto-cycle-label">Conecta</div>
+            <div class="howto-cycle-desc">Pulsa "Conectar y Jugar". El juego valida el token contra Twitch y avisa si est\xE1 caducado, es inv\xE1lido o le falta alg\xFAn permiso.</div>
+          </div>
+          <div class="howto-cycle-arrow">\u2192</div>
+          <div class="howto-cycle-step">
+            <div class="howto-cycle-num">4</div>
+            <div class="howto-cycle-icon">\u{1F916}</div>
+            <div class="howto-cycle-label">Juega</div>
+            <div class="howto-cycle-desc">A partir de ah\xED, los avisos y resultados que genera cada modo se env\xEDan tambi\xE9n, autom\xE1ticamente, al chat real de Twitch como si los escribiera esa cuenta.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="oauth-info-warning">
+        <div class="oauth-info-warning-icon">\u26A0\uFE0F</div>
+        <p class="oauth-info-warning-text">
+          <b>No muestres ni compartas tu Token OAuth con nadie</b> (ni en pantalla, ni en clips, ni por chat o Discord). Quien lo tenga puede escribir en el chat de esa cuenta como si fuera ella. Si crees que alguien lo ha visto, genera uno nuevo en twitchtokengenerator.com: eso invalida el anterior.
+        </p>
+      </div>
+
+      <div class="howto-block">
+        <h3 class="howto-subtitle">\u{1F4AC} Mensajes que se env\xEDan con el Token activo, por modo</h3>
+        <div class="oauth-mode-msg-grid">${renderModeMessagesGrid()}</div>
+      </div>
+    </div>
+  `;
+  }
+  function initOAuthInfo() {
+    const btn = $("oauth-info-btn");
+    if (!btn) return;
+    btn.onclick = () => {
+      showModal("\u{1F511} Token OAuth", renderOAuthInfoBody(), [
+        { label: "Cerrar", class: "btn-primary" }
+      ], { wide: true });
+    };
+  }
+
   // js/eventListeners.js
   $("connect-btn").onclick = async () => {
     const channel = $("channel-input").value.trim().replace(/^#/, "");
@@ -24796,6 +25035,7 @@
   }
   initPokemonCommandsScreen();
   initHowToPlayScreen();
+  initOAuthInfo();
   function syncVolumeUi() {
     const musicSlider = $("music-volume-slider");
     const sfxSlider = $("sfx-volume-slider");
