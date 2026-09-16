@@ -11,7 +11,7 @@ import { backToMenu } from '../modeLauncher.js';
 import { PMDSprite, PMD_DIR, pmdHasLocalSprite, pmdPreload } from '../pmdSprite.js';
 import { rollShinyPokemon } from '../pokemonShiny.js';
 import { state } from '../state.js';
-import { $, addScore, showModal, toast } from '../utils.js';
+import { $, addScore, detachModalFromGameContent, showModal, toast } from '../utils.js';
 
 /* =========================================================
    MODO POKERUS
@@ -225,6 +225,11 @@ export function startPokerus() {
    LOBBY
    --------------------------------------------------------- */
 function renderPokerusLobby() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   content.innerHTML = `
     <!-- La clase "game-scene" es la misma que llevan las escenas de lobby
@@ -1083,6 +1088,11 @@ function startPokerusRound(prevOverlay) {
 const POKERUS_LOG_PLACEHOLDER = '<p style="color:var(--muted);font-style:italic;">¡Elegid puerta antes de que se acabe el tiempo!</p>';
 
 function renderPokerusRound(prevOverlay) {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   const ms = state.modeState;
   const alivePlayers = ms.order.map(u => ms.players[u]).filter(p => p.alive);

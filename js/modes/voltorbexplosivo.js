@@ -7,7 +7,7 @@ import { toggleLobbyExpelPopover } from '../lobbyExpel.js';
 import { backToMenu } from '../modeLauncher.js';
 import { PMDSprite, PMD_DIR, pmdPreload } from '../pmdSprite.js';
 import { state } from '../state.js';
-import { $, addScore, normalizeAnswer, showModal, toast } from '../utils.js';
+import { $, addScore, detachModalFromGameContent, normalizeAnswer, showModal, toast } from '../utils.js';
 import {
   playCountdownBeep, playVeJoin, playVeMatchStart, playVeCategory, playVeTurn,
   playVeCorrect, playVeWrong, playVeTimeout, playVeGrow, playVeExplosion,
@@ -181,6 +181,11 @@ function veNorm(s) {
    LOBBY
    --------------------------------------------------------- */
 function renderVoltorbLobby() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   content.innerHTML = `
     <div class="ve-lobby-box game-scene" id="ve-lobby-scene">
@@ -331,6 +336,11 @@ function computeVoltorbCirclePositions() {
    CAMPO DE JUEGO (EL CORRO)
    --------------------------------------------------------- */
 function renderVoltorbField() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   const ms = state.modeState;
   const players = ms.order.map(u => ms.players[u]);
@@ -432,6 +442,23 @@ function showVoltorbAnswerBubble(user, text, kind) {
   bubble.className = 've-speech-bubble' + (kind ? ' ' + kind : '');
   bubble.textContent = text;
   el.appendChild(bubble);
+  // El bocadillo se dibuja por defecto ENCIMA del jugador, pero .ve-field-outer
+  // tiene overflow:hidden: a los jugadores de la parte alta del corro (sobre
+  // todo al de las 12 en punto, que queda al 13% de la altura del campo) no les
+  // cabe encima y se recortaría, más aún desde que el sprite OW va a x1.5. Si
+  // no hay hueco suficiente por arriba, se coloca debajo (clase 'below', que
+  // además da la vuelta al pico del bocadillo).
+  const fieldEl = $('ve-field-outer');
+  if (fieldEl) {
+    const margin = 10; // mismo margin-bottom que .ve-speech-bubble
+    const needed = bubble.offsetHeight + margin;
+    // offsetHeight/getBoundingClientRect aquí son fiables: el alto del bocadillo
+    // no depende de la animación de entrada (solo transforma), y .ve-player ya
+    // tiene su translate(-50%,-50%) aplicado.
+    if (el.getBoundingClientRect().top - needed < fieldEl.getBoundingClientRect().top) {
+      bubble.classList.add('below');
+    }
+  }
   // Mientras el bocadillo está visible, el jugador pasa por delante del
   // Voltorb (ver .ve-player.ve-has-bubble en styles.css) para que el
   // bocadillo se vea siempre por encima si ambos se solapan.

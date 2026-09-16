@@ -12,7 +12,7 @@ import { backToMenu } from '../modeLauncher.js';
 import { PMDSprite, PMD_DIR, pmdHasLocalSprite, pmdPreload } from '../pmdSprite.js';
 import { rollShinyPokemon } from '../pokemonShiny.js';
 import { state } from '../state.js';
-import { $, addScore, toast } from '../utils.js';
+import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
 
 /* =========================================================
    MODO EL VOLCÁN
@@ -118,6 +118,11 @@ export function startVolcan() {
    LOBBY
    --------------------------------------------------------- */
 function renderVolcanLobby() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   content.innerHTML = `
     <div class="volcan-lobby-box game-scene" id="volcan-lobby-scene">
@@ -339,6 +344,11 @@ function startVolcanMatch() {
    CAMPO DE JUEGO
    --------------------------------------------------------- */
 function renderVolcanField() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   const ms = state.modeState;
   const players = ms.order.map(u => ms.players[u]);

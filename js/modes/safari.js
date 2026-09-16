@@ -8,7 +8,7 @@ import { backToMenu } from '../modeLauncher.js';
 import { PMDSprite, PMD_DIR, pmdHasLocalSprite, pmdPreload } from '../pmdSprite.js';
 import { rollShinyPokemon } from '../pokemonShiny.js';
 import { state } from '../state.js';
-import { $, addScore, toast } from '../utils.js';
+import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
 import {
   playSafariGoal, playSafariShot, playVeJoin, playModeMusic,
   playSafariMatchStart, playSafariEyesClose, playSafariEyesReady,
@@ -41,7 +41,16 @@ import {
 const SAFARI_STAND_ANIM_SPEED = 2.6;   // animación "Walk" lenta = de pie (mismo truco que Pokerus)
 const SAFARI_WALK_ANIM_SPEED = 3.2;    // animación "Walk" mientras camina de verdad
 const SAFARI_TICK_MS = 50;             // frecuencia del bucle de movimiento
-const SAFARI_WALK_PX_PER_S = (55 / 6) * 2; // velocidad real de desplazamiento por el mapa — el doble que antes; la animación de caminar (SAFARI_WALK_ANIM_SPEED) no cambia, solo el avance por el mapa
+const SAFARI_WALK_PX_PER_S = (55 / 6) * 2 * 1.25; // velocidad real de desplazamiento por el mapa — x1.25 sobre la anterior; la animación de caminar (SAFARI_WALK_ANIM_SPEED) no cambia, solo el avance por el mapa
+// Mientras un Pokémon avanza no va en línea recta: serpentea de forma
+// errática arriba y abajo. El avance lateral (SAFARI_WALK_PX_PER_S) es
+// independiente de esto y no se ve afectado, así que todos llegan a la meta
+// en el mismo tiempo que sin bamboleo; lo único que cambia es lo difícil que
+// resulta apuntarles.
+const SAFARI_WOBBLE_PCT_PER_S = 11;      // velocidad vertical máxima del serpenteo (% de alto del campo por segundo)
+const SAFARI_WOBBLE_RANGE_PCT = 6;       // cuánto se puede alejar, arriba o abajo, de su carril inicial
+const SAFARI_WOBBLE_MIN_MS = 120;        // duración mínima de cada tramo antes de volver a sortear rumbo
+const SAFARI_WOBBLE_MAX_MS = 420;        // duración máxima de cada tramo
 const SAFARI_START_X_PCT = 8;          // columna inicial (izquierda)
 const SAFARI_TOP_SIGN_CLEARANCE_PCT = 19; // margen superior para dejar sitio al cartel de !go/!stop (que ocupa como mucho el 15% de alto)
 const SAFARI_FINISH_X_PCT = 90;        // posición interna de la línea de meta (no se muestra)
@@ -105,6 +114,11 @@ export function startSafari() {
    LOBBY
    --------------------------------------------------------- */
 function renderSafariLobby() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   content.innerHTML = `
     <div class="safari-lobby-box game-scene" id="safari-lobby-scene">
@@ -317,6 +331,14 @@ function startSafariMatch() {
     // instrucciones (!go/!stop, ver .safari-status-sign), que no debe ocupar
     // más del 15% vertical del campo.
     p.yPct = SAFARI_TOP_SIGN_CLEARANCE_PCT + ((i + 0.5) / n) * (92 - SAFARI_TOP_SIGN_CLEARANCE_PCT);
+    // Carril de referencia del serpenteo: el Pokémon oscila alrededor de su
+    // fila inicial sin invadir la de los demás (ver applySafariWobble).
+    p.laneYPct = p.yPct;
+    // Con muchos jugadores los carriles quedan muy juntos, así que el radio
+    // del serpenteo se recorta para que no se pisen entre ellos.
+    p.wobbleRangePct = Math.min(SAFARI_WOBBLE_RANGE_PCT, ((92 - SAFARI_TOP_SIGN_CLEARANCE_PCT) / n) * 0.42);
+    p.wobbleVy = 0;
+    p.wobbleLeftMs = 0;
     p.moving = false;
     p.alive = true;
     p.reachedGoal = false;
@@ -331,6 +353,11 @@ function startSafariMatch() {
    CAMPO DE JUEGO
    --------------------------------------------------------- */
 function renderSafariField() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   const ms = state.modeState;
   const players = ms.order.map(u => ms.players[u]);
@@ -455,6 +482,39 @@ function safariFieldSize() {
   return outer ? { w: outer.clientWidth || 900, h: outer.clientHeight || 500 } : { w: 900, h: 500 };
 }
 
+// Serpenteo vertical errático mientras el Pokémon avanza. En vez de una
+// onda regular (que sería fácil de anticipar al apuntar), cada pocas
+// décimas de segundo se sortea una velocidad vertical nueva —arriba, abajo
+// o casi quieto— y se mantiene durante ese tramo, así que el recorrido sale
+// irregular y distinto en cada partida.
+//
+// OJO: esto solo toca p.yPct. El avance lateral se calcula aparte en
+// safariTick() a partir de SAFARI_WALK_PX_PER_S y no se ve afectado, que es
+// justo lo que se busca: serpentean, pero sin avanzar más despacio ni más
+// deprisa por ello.
+function applySafariWobble(p, dt, el) {
+  p.wobbleLeftMs = (p.wobbleLeftMs || 0) - dt;
+  if (p.wobbleLeftMs <= 0) {
+    // Nuevo tramo: rumbo y brío al azar. Se permite un factor pequeño (o
+    // negativo) para que a veces casi se pare en vertical o cambie de
+    // sentido de golpe, en vez de oscilar siempre a tope.
+    p.wobbleVy = (Math.random() * 2 - 1) * SAFARI_WOBBLE_PCT_PER_S;
+    p.wobbleLeftMs = SAFARI_WOBBLE_MIN_MS + Math.random() * (SAFARI_WOBBLE_MAX_MS - SAFARI_WOBBLE_MIN_MS);
+  }
+  if (p.laneYPct == null) p.laneYPct = p.yPct;
+  // Límites: ni se sale del campo (dejando libre la franja del cartel de
+  // !go/!stop arriba) ni se aleja tanto de su carril como para pisar el de
+  // otro jugador.
+  const range = p.wobbleRangePct != null ? p.wobbleRangePct : SAFARI_WOBBLE_RANGE_PCT;
+  const minY = Math.max(SAFARI_TOP_SIGN_CLEARANCE_PCT, p.laneYPct - range);
+  const maxY = Math.min(92, p.laneYPct + range);
+  let y = p.yPct + p.wobbleVy * (dt / 1000);
+  if (y <= minY) { y = minY; p.wobbleVy = Math.abs(p.wobbleVy); p.wobbleLeftMs = 0; }
+  else if (y >= maxY) { y = maxY; p.wobbleVy = -Math.abs(p.wobbleVy); p.wobbleLeftMs = 0; }
+  p.yPct = y;
+  if (el) el.style.top = p.yPct + '%';
+}
+
 /* ---------------------------------------------------------
    BUCLE DE MOVIMIENTO
    --------------------------------------------------------- */
@@ -480,6 +540,8 @@ function safariTick() {
       p.xPct = Math.min(SAFARI_EXIT_X_PCT, p.xPct + deltaPct);
       const el = $(p.elId);
       if (el) el.style.left = p.xPct + '%';
+      // Sigue avanzando, así que sigue serpenteando hasta salir del encuadre.
+      applySafariWobble(p, dt, el);
       const finishElapsedMs = now - (p.finishStartAt || now);
       if (p.xPct >= SAFARI_EXIT_X_PCT || finishElapsedMs >= SAFARI_FINISH_WALK_MS) {
         p.finishing = false;
@@ -505,6 +567,7 @@ function safariTick() {
     }
     const el = $(p.elId);
     if (el) el.style.left = p.xPct + '%';
+    applySafariWobble(p, dt, el);
   });
   renderSafariStatusList();
   checkSafariEnd();

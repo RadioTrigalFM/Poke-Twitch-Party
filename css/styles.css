@@ -3139,7 +3139,10 @@
     flex-direction: column;
     align-items: center;
     transform: translate(-50%, -50%);
-    transition: left .05s linear;
+    /* 'top' se interpola igual que 'left' (mismo periodo que SAFARI_TICK_MS)
+       para que el serpenteo vertical de applySafariWobble() salga continuo y
+       no a saltos de tick. */
+    transition: left .05s linear, top .05s linear;
     z-index: 5;
   }
   .safari-walker .pmd-slot.pmd-mini { width: 90px; height: 90px; }
@@ -6686,15 +6689,25 @@
     z-index: 4;
   }
   .vlince-player-name {
-    font-size: 9px;
+    font-size: 13.5px;
     background: rgba(0,0,0,.75);
     color: #fff;
-    padding: 1px 5px;
-    border-radius: 4px;
+    padding: 1.5px 7.5px;
+    border-radius: 6px;
     white-space: nowrap;
-    max-width: 90px;
+    max-width: 135px;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* Sprites de NPC de los jugadores tras la valla: x1.5 más grandes que el
+     tamaño base de .vlince-ow-slot/.vlince-ow-img (usado también en las
+     tarjetas del lobby, que no se ven afectadas por este ajuste). */
+  .vlince-player .vlince-ow-slot {
+    width: 84px; height: 84px;
+  }
+  .vlince-player .vlince-ow-img {
+    height: 69px;
+    max-width: 69px;
   }
   .vlince-player-badge {
     position: absolute;
@@ -6833,19 +6846,20 @@
     letter-spacing: .2px;
   }
 
-  /* --- Bocadillo de diálogo con la respuesta del jugador --- */
+  /* --- Bocadillo de diálogo con la respuesta del jugador ---
+     Se muestra DEBAJO del sprite (no encima) y a x1.5 su tamaño original. */
   .vlince-bubble {
     position: absolute;
-    bottom: calc(100% + 2px);
+    top: calc(100% + 3px);
     left: 50%;
     transform: translateX(-50%);
     background: #fff;
     color: #222;
-    font-size: 12px;
+    font-size: 18px;
     font-weight: 700;
-    padding: 4px 9px;
-    border-radius: 10px;
-    border: 2px solid #222;
+    padding: 6px 13.5px;
+    border-radius: 15px;
+    border: 3px solid #222;
     white-space: nowrap;
     z-index: 6;
     animation: vlBubbleIn .18s ease;
@@ -6854,20 +6868,20 @@
   .vlince-bubble::after {
     content: '';
     position: absolute;
-    top: 100%;
+    bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: #222;
+    border: 9px solid transparent;
+    border-bottom-color: #222;
   }
   .vlince-bubble::before {
     content: '';
     position: absolute;
-    top: calc(100% - 3px);
+    bottom: calc(100% - 4.5px);
     left: 50%;
     transform: translateX(-50%);
-    border: 4px solid transparent;
-    border-top-color: #fff;
+    border: 6px solid transparent;
+    border-bottom-color: #fff;
     z-index: 1;
   }
   @keyframes vlBubbleIn {
@@ -8112,24 +8126,30 @@
   .ve-player::before {
     content: '';
     position: absolute;
-    bottom: -4px;
+    bottom: -6px;
     left: 50%;
     transform: translateX(-50%);
-    width: 32px; height: 9px;
+    width: 48px; height: 13px;
     background: radial-gradient(ellipse at center, rgba(0,0,0,.55), transparent 72%);
     border-radius: 50%;
     z-index: -1;
     transition: opacity .3s ease, background .3s ease;
   }
   .ve-player.flip .ve-ow-img { transform: scaleX(-1) drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+  /* Dentro del corro, el sprite OW del jugador y su tarjeta de nombre van
+     a x1.5 respecto al tamaño base de .ve-ow-slot / .ve-ow-img (52/42px),
+     que se mantiene tal cual en el lobby y en el cartel de victoria. El
+     sprite del Voltorb (.ve-voltorb-token) NO se toca. */
+  .ve-player .ve-ow-slot { width: 78px; height: 78px; }
+  .ve-player .ve-ow-img { height: 63px; max-width: 63px; }
   .ve-player-name {
-    font-size: 9px;
+    font-size: 13.5px;
     background: rgba(0,0,0,.75);
     color: #fff;
-    padding: 1px 5px;
-    border-radius: 4px;
+    padding: 1.5px 7.5px;
+    border-radius: 6px;
     white-space: nowrap;
-    max-width: 90px;
+    max-width: 135px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -8165,7 +8185,7 @@
   /* Marca de "chamuscado" en el suelo tras la explosión, en vez de la
      sombra normal, para reforzar visualmente la eliminación. */
   .ve-player.dead::before {
-    width: 44px; height: 13px;
+    width: 66px; height: 19px;
     background: radial-gradient(ellipse at center, rgba(20,10,5,.6) 0%, rgba(40,20,10,.3) 48%, transparent 78%);
   }
   .ve-player.active-turn .ve-ow-slot {
@@ -8180,7 +8200,7 @@
   /* Foco de luz cálido en el suelo bajo quien tiene el turno, a juego con
      el aro amarillo pulsante de su sprite. */
   .ve-player.active-turn::before {
-    width: 56px; height: 17px;
+    width: 84px; height: 25px;
     background: radial-gradient(ellipse at center, rgba(255,203,5,.5), rgba(255,203,5,0) 75%);
     filter: blur(.5px);
     animation: veActiveSpotPulse 1.1s ease-in-out infinite;
@@ -8228,6 +8248,33 @@
   .ve-speech-bubble.correct::after { border-top-color: #dff8e1; }
   .ve-speech-bubble.wrong { background: #ffe0e0; }
   .ve-speech-bubble.wrong::after { border-top-color: #ffe0e0; }
+  /* Variante para los jugadores de la parte alta del corro, a los que el
+     bocadillo no les cabe encima sin salirse del campo (ver
+     showVoltorbAnswerBubble en voltorbexplosivo.js): se coloca debajo y el
+     pico apunta hacia arriba. */
+  .ve-speech-bubble.below {
+    bottom: auto;
+    top: 100%;
+    margin-bottom: 0;
+    margin-top: 10px;
+    animation: veBubbleInBelow .18s ease;
+  }
+  .ve-speech-bubble.below::after {
+    top: auto;
+    bottom: 100%;
+    border-top-color: transparent;
+    border-bottom-color: #fff;
+  }
+  .ve-speech-bubble.below.correct::after { border-bottom-color: #dff8e1; }
+  .ve-speech-bubble.below.wrong::after { border-bottom-color: #ffe0e0; }
+  .ve-speech-bubble.below.leaving { animation: veBubbleOutBelow .25s ease forwards; }
+  @keyframes veBubbleInBelow {
+    from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(.85); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  }
+  @keyframes veBubbleOutBelow {
+    to { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.9); }
+  }
   .ve-speech-bubble.leaving {
     animation: veBubbleOut .25s ease forwards;
   }

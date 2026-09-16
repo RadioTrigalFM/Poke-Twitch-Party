@@ -6,7 +6,7 @@ import { toggleLobbyExpelPopover } from '../lobbyExpel.js';
 import { backToMenu } from '../modeLauncher.js';
 import { OwWalker } from '../owWalker.js';
 import { state } from '../state.js';
-import { $, addScore, toast } from '../utils.js';
+import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
 
 /* =========================================================
    MODO GLACIAL AVALUGG
@@ -510,6 +510,11 @@ export function handleAvaluggCmd(user, cmd, parts, text) {
    LOBBY
    --------------------------------------------------------- */
 function renderAvaluggLobby() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   content.innerHTML = `
     <div class="avl-lobby-box game-scene" id="avl-lobby-scene">
@@ -672,6 +677,11 @@ function startAvaluggMatch() {
    TABLERO
    --------------------------------------------------------- */
 function renderAvaluggBoard() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   const ms = state.modeState;
   content.innerHTML = `

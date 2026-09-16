@@ -224,6 +224,13 @@
     const target = currentFullscreenElement() || document.body;
     if (modal.parentElement !== target) target.appendChild(modal);
   }
+  function detachModalFromGameContent() {
+    const modal = $("modal");
+    const content = $("game-content");
+    if (modal && content && content.contains(modal)) {
+      document.body.appendChild(modal);
+    }
+  }
   function showModal(title, body, actions = []) {
     relocateModal();
     $("modal-title").textContent = title;
@@ -2984,6 +2991,7 @@
     processAvaluggMove(user, m[1].slice(0, AVL_MAX_MOVE_LETTERS));
   }
   function renderAvaluggLobby() {
+    detachModalFromGameContent();
     const content = $("game-content");
     content.innerHTML = `
     <div class="avl-lobby-box game-scene" id="avl-lobby-scene">
@@ -3112,6 +3120,7 @@
     addChatMessage(null, `\u2744\uFE0F \xA1Comienza Glaciar de Avalugg con ${users.length} jugadores! Usa !w !a !s !d para moverte (ej: !aasaa)`, "system");
   }
   function renderAvaluggBoard() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     content.innerHTML = `
@@ -7302,6 +7311,7 @@
     addChatMessage(null, `\u{1F479} \xA1${bossTemplate.name} os espera en el Nivel ${state.modeState.bossLevel}, Fase 1/${BOSS_STAGES_PER_LEVEL}! Escribe !pokemon [nombre] para apuntarte a la lucha (m\xE1x. ${BOSS_MAX_PLAYERS}, toda la Pok\xE9dex Nacional disponible). Cuando el streamer pulse "Comenzar Combate", empezar\xE1 el duelo.`, "system");
   }
   function renderBossLobby() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const b = state.modeState.boss;
     content.innerHTML = `
@@ -8060,6 +8070,7 @@
   </svg>
 `;
   function renderBoss() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     const b = ms.boss;
@@ -9376,6 +9387,7 @@
       { q: "Regi\xF3n donde transcurre la historia del segundo juego de Pok\xE9mon Rangers", a: "Almia", prefix: "Empieza por A" },
       { q: 'Ciudad ubicada al sur de Pueblo Azalea donde se desarrollan los acontecimientos de la pel\xEDcula "Pok\xE9mon Heroes"', a: "Altomare", prefix: "Empieza por A" },
       { q: "Pok\xE9mon normal de Johto con una mano en la punta de la cola", a: "Aipom", prefix: "Empieza por A" },
+      { q: "M\xE9todo de evoluci\xF3n de Pok\xE9mon como riolu, golbat o togepi", a: "Amistad", prefix: "Empieza por A" },
       { q: "Movimiento que impide durante 5 turnos el uso de movimientos de recuperaci\xF3n de PS por los oponentes", a: "Anticura", prefix: "Empieza por A" },
       { q: "Pok\xE9mon enfermero de los Centros Pok\xE9mon de Teselia", a: "Audino", prefix: "Empieza por A" },
       { q: "Movimiento planta que cura el estado alterado de todo el equipo", a: "Aromaterapia", prefix: "Empieza por A" },
@@ -9394,7 +9406,7 @@
       { q: "Pok\xE9mon paradoja relacionado con Salamence", a: "Bramaluna", prefix: "Empieza por B" },
       { q: "Pok\xE9mon de cuarta generaci\xF3n que hizo su primera aparici\xF3n como una estatua en Pok\xE9mon Mundo Misterioso", a: "Bonsly", prefix: "Empieza por B" },
       { q: "Pok\xE9mon pseudolegendario que debe su nombre a la legendaria espada del Rey Arturo", a: "Baxcalibur", prefix: "Empieza por B" },
-      { q: "Objeto clave que puede ser intercambiado por el bono que entrega el Presidente del Club de Fans de Pok\xE9mon", a: "Bici", alts: ["Bicicleta"], prefix: "Empieza por B" },
+      { q: "Objeto clave que puede ser intercambiado por el bono que entrega el Presidente del Club de Fans de Pok\xE9mon", a: "Bici", prefix: "Empieza por B" },
       { q: "Tipo perdido por Skorupi al evolucionar a Drapion", a: "Bicho", prefix: "Empieza por B" },
       { q: "Ultraente capaz de utilizar el movimiento Cabeza Sorpresa", a: "Blacephalon", prefix: "Empieza por B" },
       { q: "Amiga de la infancia del protagonista de Blanco y Negro que se convierte en una rival", a: "Bel", prefix: "Empieza por B" },
@@ -9473,7 +9485,7 @@
       { q: "Pok\xE9mon compa\xF1ero de AZ", a: "Floette", prefix: "Empieza por F" },
       { q: "Naturaleza que aumenta el ataque y baja el ataque especial", a: "Firme", prefix: "Empieza por F" },
       { q: "Movimiento capaz de derrotar al objetivo de un solo golpe si acierta", a: "Fisura", prefix: "Empieza por F" },
-      { q: "Recurso intercambiado por Porygon o Dratini entre otros en el casino de Ciudad Azulona", a: "Fichas", alts: ["Ficha"], prefix: "Empieza por F" },
+      { q: "Recurso intercambiado por Porygon o Dratini entre otros en el casino de Ciudad Azulona", a: "Fichas", prefix: "Empieza por F" },
       { q: 'Modo de combate obligatorio en los "lockes"', a: "Fijo", prefix: "Empieza por F" },
       { q: "Pok\xE9mon de Galar formado por varios soldados en fila", a: "Falinks", prefix: "Empieza por F" },
       { q: "Movimiento que deja con 1 ps al objetivo, sin debilitarlo", a: "Falsotortazo", prefix: "Empieza por F" },
@@ -9488,22 +9500,31 @@
       { q: "Objeto que te permite revivir el ADN de una criatura extinta", a: "F\xF3sil", prefix: "Empieza por F" },
       { q: "Cuenta la leyenda que es la reencarnaci\xF3n de mujeres que sufrieron accidentes en la nieve", a: "Froslass", prefix: "Empieza por F" },
       { q: "En Pok\xE9mon Mundo Misterioso, esfera que sirve para abandonar la mazmorra", a: "Fugasfera", prefix: "Empieza por F" },
-      { q: "Pok\xE9mon perro con 10 estilos diferentes", a: "Furfrou", prefix: "Empieza por F" },
-      { q: "M\xE9todo de evoluci\xF3n de Pok\xE9mon como riolu, golbat o togepi", a: "Felicidad", prefix: "Empieza por F" }
+      { q: "Pok\xE9mon perro con 10 estilos diferentes", a: "Furfrou", prefix: "Empieza por F" }
     ],
     "G": [
       { q: "Pok\xE9mon que debe reunir 999 monedas para evolucionar", a: "Gimmighoul", prefix: "Empieza por G" },
       { q: "Pok\xE9mon legendario que habita en el Mundo Distorsi\xF3n", a: "Giratina", prefix: "Empieza por G" },
       { q: "\xDAnico Pok\xE9mon con la habilidad Retirada", a: "Golisopod", prefix: "Empieza por G" },
       { q: "Objeto que permite cambiar a Shaymin de forma", a: "Grac\xEDdea", prefix: "Empieza por G" },
-      { q: "Edificio ubicado en las ciudades Pok\xE9mon en el que te recompensan con una medalla al derrotar al l\xEDder", a: "Gimnasio", prefix: "Empieza por G" }
+      { q: "Edificio ubicado en las ciudades Pok\xE9mon en el que te recompensan con una medalla al derrotar al l\xEDder", a: "Gimnasio", prefix: "Empieza por G" },
+      { q: "Pok\xE9mon que s\xF3lo se puede obtener al evolucionar un Kirlia macho con la piedra alba", a: "Gallade", prefix: "Empieza por G" },
+      { q: "Pok\xE9mon insecto que cierta organizaci\xF3n devolvi\xF3 a la vida del Paleozoico y modific\xF3 el gran ca\xF1\xF3n de su lomo", a: "Genesect", prefix: "Empieza por G" },
+      { q: "Pok\xE9mon fantasma de primera generaci\xF3n que perdi\xF3 su habilidad Levitaci\xF3n con el paso de las generaciones", a: "Gengar", prefix: "Empieza por G" },
+      { q: "Pok\xE9mon que se puede usar como montura en Ciudad Luminalia", a: "Gogoat", prefix: "Empieza por G" },
+      { q: "Pok\xE9mon cuyas estad\xEDsticas var\xEDan en funci\xF3n del tama\xF1o", a: "Gourgeist", prefix: "Empieza por G" }
     ],
     "H": [
       { q: "Nombre antiguo de la regi\xF3n de Sinnoh", a: "Hisui", prefix: "Empieza por H" },
       { q: "Pok\xE9mon legendario cuyo nombre es un pal\xEDndromo (se lee igual en ambas direcciones)", a: "Ho-Oh", prefix: "Empieza por H" },
       { q: "Dispositivo de Kalos mediante el cual se comunican los protagonistas de Pok\xE9mon X & Y", a: "Holomisor", prefix: "Empieza por H" },
       { q: "\xDAltimo tipo a\xF1adido a los juegos de Pok\xE9mon", a: "Hada", prefix: "Empieza por H" },
-      { q: "Movimiento que a\xF1ade el tipo fantasma al objetivo, pudiendo tener hasta 3 tipos", a: "Halloween", prefix: "Empieza por H" }
+      { q: "Movimiento que a\xF1ade el tipo fantasma al objetivo, pudiendo tener hasta 3 tipos", a: "Halloween", prefix: "Empieza por H" },
+      { q: "Pok\xE9mon shiny capturable en la Reserva Natural de Pok\xE9mon Blanco 2 y Negro 2", a: "Haxorus", prefix: "Empieza por H" },
+      { q: "Pok\xE9mon el\xE9ctrico de Kalos completamente inmune a los tipos fantasma y agua (gracias a su habilidad)", a: "Heliolisk", prefix: "Empieza por H" },
+      { q: "Pok\xE9mon que planeaba atacar a Pedrita en el bosque baya, hasta que el protagonista llega para salvarla", a: "Hypno", prefix: "Empieza por H" },
+      { q: "Evoluci\xF3n de Tyrogue al tener m\xE1s ataque f\xEDsico que defensa f\xEDsica", a: "Hitmonlee", prefix: "Empieza por H" },
+      { q: "Evoluci\xF3n de Tyrogue al tener m\xE1s defensa f\xEDsica que ataque f\xEDsico", a: "Hitmonchan", prefix: "Empieza por H" }
     ],
     "I": [
       { q: "Objeto de crianza usado para obtener diversos Pok\xE9mon beb\xE9s", a: "Incienso", prefix: "Empieza por I" },
@@ -9511,43 +9532,66 @@
       { q: "Pok\xE9mon que evoluciona al subir un nivel mientras mantienes la consola girada 180\xBA", a: "Inkay", prefix: "Empieza por I" },
       { q: "Habilidad que reduce el ataque de los rivales al entrar en combate", a: "Intimidaci\xF3n", prefix: "Empieza por I" },
       { q: "Campeona de la Liga Pok\xE9mon de Teselia en el anime", a: "Iris", prefix: "Empieza por I" },
-      { q: "Habilidad que permite transformarse en el rival al entrar el combate", a: "Impostor", prefix: "Empieza por I" }
+      { q: "Habilidad que permite transformarse en el rival al entrar el combate", a: "Impostor", prefix: "Empieza por I" },
+      { q: "Pok\xE9mon con orejas en forma de croissant con diferencia de g\xE9nero", a: "Indeedee", prefix: "Empieza por I" },
+      { q: "Pok\xE9mon considerado el rey de VGC desde que apareci\xF3 en Pok\xE9mon Sol y Luna", a: "Incineroar", prefix: "Empieza por I" },
+      { q: "Pok\xE9mon inicial basado en Sun Wukong", a: "Infernape", prefix: "Empieza por I" },
+      { q: "Pok\xE9mon inicial de Galar basado en un pistolero", a: "Inteleon", prefix: "Empieza por I" }
     ],
     "J": [
       { q: "Nombre del desarrollador japon\xE9s de Game Freak que da nombre a una t\xE9cnica de caza para shinies", a: "Junichi", prefix: "Empieza por J" },
       { q: "Habilidad que sube el Ataque cuando el Pok\xE9mon recibe un movimiento de tipo siniestro", a: "Justiciero", prefix: "Empieza por J" },
       { q: "Pok\xE9mon singular con el poder de conceder deseos", a: "Jirachi", prefix: "Empieza por J" },
       { q: "Regi\xF3n en la que aparece el primer Pok\xE9mon shiny de la historia", a: "Johto", prefix: "Empieza por J" },
-      { q: "Evoluci\xF3n de Eevee obtenida al usar la piedra trueno", a: "Jolteon", prefix: "Empieza por J" }
+      { q: "Evoluci\xF3n de Eevee obtenida al usar la piedra trueno", a: "Jolteon", prefix: "Empieza por J" },
+      { q: "Pok\xE9mon de primera generaci\xF3n cuyo color de piel fue cambiado para evitar confusiones racistas", a: "Jynx", prefix: "Empieza por J" },
+      { q: "Viaja arrastrado por los vientos estacionales hasta agotar sus esporas de algod\xF3n", a: "Jumpluff", prefix: "Empieza por J" },
+      { q: "Antes de la introducci\xF3n de Basculegion, este Pok\xE9mon era el \xFAnico de tipo Agua/Fantasma junto a su preevoluci\xF3n", a: "Jellicent", prefix: "Empieza por J" },
+      { q: "Pok\xE9mon cuyo canto provoca un sue\xF1o inaguantable", a: "Jigglypuff", prefix: "Empieza por J" }
     ],
     "K": [
       { q: "L\xEDder de gimnasio de Kanto que acaba siendo Alto Mando", a: "Koga", prefix: "Empieza por K" },
       { q: "Clase de entrenador que ostenta la m\xE1xima autoridad en cada isla de Alola", a: "Kahuna", prefix: "Empieza por K" },
       { q: "Regi\xF3n en la que puedes elegir dos Pok\xE9mon iniciales", a: "Kalos", prefix: "Empieza por K" },
       { q: "Evoluci\xF3n de Scyther en la regi\xF3n antigua de Sinnoh", a: "Kleavor", prefix: "Empieza por K" },
-      { q: "\xDAnico Pok\xE9mon que puede tener la habilidad General Supremo", a: "Kingambit", prefix: "Empieza por K" }
+      { q: "\xDAnico Pok\xE9mon que puede tener la habilidad General Supremo", a: "Kingambit", prefix: "Empieza por K" },
+      { q: "Pok\xE9mon que comparte nombre con el ayudante de Orochimaru en Naruto", a: "Kabuto", prefix: "Empieza por K" },
+      { q: "Es el ultraente con mayor ataque f\xEDsico", a: "Kartana", prefix: "Empieza por K" },
+      { q: "Pok\xE9mon que obstaculiza el camino hacia el gimnasio de Ciudad Arborada", a: "Kecleon", prefix: "Empieza por K" },
+      { q: "Pok\xE9mon que gracias a su habilidad le permite estar en constante sue\xF1o, lo que evita contraer otros estados alterados", a: "Komala", prefix: "Empieza por K" }
     ],
     "L": [
       { q: "Pok\xE9mon lucha/acero capaz de percibir el aura de los seres vivos", a: "Lucario", prefix: "Empieza por L" },
       { q: "Torneo final que deben superar los entrenadores tras conseguir todas las medallas", a: "Liga", prefix: "Empieza por L" },
       { q: "Primer Pok\xE9mon en poder aprender el movimiento Cuchilla Solar", a: "Lurantis", prefix: "Empieza por L" },
       { q: 'Pok\xE9mon basado en la criatura del folclore japon\xE9s "Kappa", lleva un nen\xFAfar sobre su cabeza', a: "Lombre", prefix: "Empieza por L" },
-      { q: "\xDAnico movimiento que puede ser muy eficaz contra un tipo que deber\xEDa resistirlo", a: "Liofilizaci\xF3n", prefix: "Empieza por L" }
+      { q: "\xDAnico movimiento que puede ser muy eficaz contra un tipo que deber\xEDa resistirlo", a: "Liofilizaci\xF3n", prefix: "Empieza por L" },
+      { q: "Pok\xE9mon usado en el anime para viajar por el mar entre las Islas Naranja", a: "Lapras", prefix: "Empieza por L" },
+      { q: "Pok\xE9mon errante que aparece en Hoenn si le dices a tu madre que el color que han dicho en las noticias es el rojo", a: "Latias", prefix: "Empieza por L" },
+      { q: "Pok\xE9mon con sombrero mexicano que ha conseguido evolucionar usando una Piedra Agua", a: "Ludicolo", prefix: "Empieza por L" },
+      { q: "Pok\xE9mon que tiene un gran sonido de piano", a: "Ledian", prefix: "Empieza por L" },
+      { q: "Llega a ser muy activo en las noches de luna llena; este Pok\xE9mon de tercera generaci\xF3n fue descubierto hace 40 a\xF1os en el lugar en el que hab\xEDa ca\xEDdo un meteorito", a: "Lunatone", prefix: "Empieza por L" }
     ],
     "M": [
       { q: "Objeto de cuarta generaci\xF3n aplicable a los \xE1rboles para obtener determinados Pok\xE9mon", a: "Miel", prefix: "Empieza por M" },
       { q: "Objeto que permite cambiar la naturaleza de un Pok\xE9mon", a: "Menta", prefix: "Empieza por M" },
       { q: "Naturaleza que baja el ataque f\xEDsico y sube la velocidad", a: "Miedosa", prefix: "Empieza por M" },
       { q: "L\xEDder del gimnasio de Ciudad Celeste, especialista en tipo agua", a: "Misty", prefix: "Empieza por M" },
-      { q: "Saga de spin-offs donde los Pok\xE9mon exploran mazmorras", a: "Mundo Misterioso", prefix: "Empieza por M" },
-      { q: "Pok\xE9mon m\xEDtico del que se dice que contiene el ADN de todos los Pok\xE9mon", a: "Mew", prefix: "Empieza por M" }
+      { q: "Pok\xE9mon m\xEDtico del que se dice que contiene el ADN de todos los Pok\xE9mon", a: "Mew", prefix: "Empieza por M" },
+      { q: "Pok\xE9mon artificial creado hace 500 a\xF1os por un cient\xEDfico talentoso; puede percibir emociones y pensamientos de otros Pok\xE9mon", a: "Magearna", prefix: "Empieza por M" },
+      { q: "Pok\xE9mon singular considerado el pr\xEDncipe del mar", a: "Manaphy", prefix: "Empieza por M" },
+      { q: "Pok\xE9mon que puede ser comprado en el Centro Pok\xE9mon del Mt. Moon por 500 poked\xF3lares", a: "Magikarp", prefix: "Empieza por M" },
+      { q: "Pok\xE9mon m\xE1s fuerte del l\xEDder Marcial, cuyo movimiento caracter\xEDstico es Tiro Vital", a: "Makuhita", prefix: "Empieza por M" },
+      { q: "\xDAnico Pok\xE9mon que necesita a otro Pok\xE9mon concreto en el equipo para evolucionar", a: "Mantyke", prefix: "Empieza por M" }
     ],
     "N": [
       { q: "Pok\xE9mon al que se enfrenta Gengar durante la intro de los juegos originales de Pok\xE9mon", a: "Nidorino", prefix: "Empieza por N" },
-      { q: "Pok\xE9mon que, seg\xFAn la leyenda, maldijo a un humano transform\xE1ndolo en un Pok\xE9mon", a: "Ninetales", prefix: "Empieza por N" },
-      { q: "Primer Pok\xE9mon con diferencia de g\xE9nero", a: "Nidoran", prefix: "Empieza por N" },
-      { q: "\xDAnico Pok\xE9mon que evoluciona a dos pok\xE9mon a la vez", a: "Nincada", prefix: "Empieza por N" },
-      { q: "Caracter\xEDstica que modifica ligeramente las estad\xEDsticas de un pok\xE9mon, aumentando una y reduciendo otra", a: "Naturaleza", prefix: "Empieza por N" }
+      { q: "Seg\xFAn la leyenda, este Pok\xE9mon maldijo a un humano para convertirse en Pok\xE9mon", a: "Ninetales", prefix: "Empieza por N" },
+      { q: "Primer Pok\xE9mon que tuvo una diferencia de g\xE9nero entre macho y hembra", a: "Nidoran", prefix: "Empieza por N" },
+      { q: "Pok\xE9mon que evoluciona a dos Pok\xE9mon a la vez si se dispone de espacio en el equipo y una pokeball en la bolsa", a: "Nincada", prefix: "Empieza por N" },
+      { q: "Caracter\xEDstica que modifica ligeramente las estad\xEDsticas de un pok\xE9mon, aumentando una y reduciendo otra", a: "Naturaleza", prefix: "Empieza por N" },
+      { q: "Pok\xE9mon de novena generaci\xF3n que arrastra el cuerpo por el suelo al desplazarse dejando un rastro de sal", a: "Nacli", prefix: "Empieza por N" },
+      { q: "Ultraente que controla a Samina gener\xE1ndole un problema mental", a: "Nihilego", prefix: "Empieza por N" }
     ],
     "\xD1": [
       { q: "Meseta de Kanto donde se celebra la Liga Pok\xE9mon", a: "A\xF1il", prefix: "Contiene la \xD1" },
@@ -9659,8 +9703,13 @@
     ],
     "U": [
       { q: "Pok\xE9mon que evoluciona con un bloque de turba mientras hay luna llena", a: "Ursaring", prefix: "Empieza por U" },
+      { q: "Se dice que cuando apareci\xF3 en el mundo, vol\xF3 otorg\xE1ndole la inteligencia a los humanos, para que estos pudieran mejorar sus vidas y resolver sus problemas", a: "Uxie", prefix: "Empieza por U" },
+      { q: "Evoluci\xF3n de Eevee al subir un nivel con felicidad alta durante la noche", a: "Umbreon", prefix: "Empieza por U" },
+      { q: "Hasta la llegada de Mega Golurk era el \xFAnico Pok\xE9mon con la habilidad Pu\xF1o Invisible", a: "Urshifu", prefix: "Empieza por U" },
+      { q: "Pok\xE9mon de Teselia basado en un fais\xE1n con claras diferencias de g\xE9nero", a: "Unfezant", prefix: "Empieza por U" },
+      { q: "Montura de Pok\xE9mon Leyendas Arceus que se utiliza para rastrear y desenterrar objetos", a: "Ursaluna", prefix: "Empieza por U" },
       { q: "Lugar de donde proceden los ultraentes", a: "Ultraespacio", prefix: "Empieza por U" },
-      { q: "Pok\xE9mon misterioso que s\xF3lo conoce el movimiento Poder Oculto", a: "Unown", prefix: "Empieza por U" },
+      { q: "Se dice que cobraron vida cuando alguien hechiz\xF3 unos antiguos jerogl\xEDficos; no se sabe si estos Pok\xE9mon surgieron antes o despu\xE9s de la escritura", a: "Unown", prefix: "Empieza por U" },
       { q: "Habilidad introducida en la s\xE9ptima generaci\xF3n que incrementa la caracter\xEDstica m\xE1s alta del usuario cada vez que debilita a un rival en combate", a: "Ultraimpulso", prefix: "Empieza por U" },
       { q: "Ataque f\xEDsico de tipo Lucha introducido en la segunda generaci\xF3n que cuenta con prioridad alta (+1) para golpear antes que el rival", a: "Ultrapu\xF1o", prefix: "Empieza por U" }
     ],
@@ -9679,7 +9728,12 @@
       { q: "Tipo elemental introducido en primera generaci\xF3n que es totalmente inmune al envenenamiento y supereficaz contra Planta y Hada", a: "Veneno", prefix: "Empieza por V" }
     ],
     "W": [
-      { q: "Pok\xE9mon con menos estad\xEDstica totales", a: "Wishiwashi", prefix: "Empieza por W" },
+      { q: "Pok\xE9mon con menos estad\xEDsticas totales", a: "Wishiwashi", prefix: "Empieza por W" },
+      { q: "Su descomunal tama\xF1o lo convierte en un Pok\xE9mon muy popular; puede dejar fuera de combate a sus oponentes con el impacto de su enorme cuerpo al caer al agua tras uno de sus saltos", a: "Wailord", prefix: "Empieza por W" },
+      { q: "Pok\xE9mon que si es hembra tiene los labios pintados", a: "Wobbuffet", prefix: "Empieza por W" },
+      { q: "Una variedad de Pok\xE9mon pez; en el pasado se cre\xEDa err\xF3neamente que pod\xEDa ser una forma regional de Dugtrio", a: "Wugtrio", prefix: "Empieza por W" },
+      { q: "Pok\xE9mon compa\xF1ero del Sr. Arenque cuyo mote es Peeko", a: "Wingull", prefix: "Empieza por W" },
+      { q: "Pok\xE9mon al que le a\xF1adieron la habilidad Gas Reactivo en octava generaci\xF3n", a: "Weezing", prefix: "Empieza por W" },
       { q: "Nombre de la baya amarilla que restaura una gran cantidad de PS al portador en combate, pero le provoca confusi\xF3n si a este le disgusta el sabor seco", a: "Wiki", prefix: "Empieza por W" },
       { q: "Apellido del profesor que te entrega tu primer compa\xF1ero y te asigna tareas de investigaci\xF3n de campo en el juego Pok\xE9mon GO", a: "Willow", prefix: "Empieza por W" },
       { q: "Consola de sobremesa de Nintendo que alberg\xF3 t\xEDtulos derivados de la franquicia como Pok\xE9mon Battle Revolution, My Pok\xE9mon Ranch o las dos entregas de Pok\xE9Park", a: "Wii", prefix: "Empieza por W" },
@@ -9688,18 +9742,21 @@
       { q: "Simulador de batallas en l\xEDnea no oficial m\xE1s popular del mundo para jugar combates competitivos por turnos en navegador", a: "Showdown", prefix: "Contiene la W" }
     ],
     "X": [
-      { q: "Pok\xE9mon ps\xEDquico/volador que se dice que puede ver el pasado y el futuro", a: "Xatu", prefix: "Empieza por X" },
+      { q: "En Pok\xE9mon Mundo Misterioso: sabio Pok\xE9mon que puede ver el futuro; se encuentra en la cima del Monte Or\xE1culo", a: "Xatu", prefix: "Empieza por X" },
       { q: "Pok\xE9mon legendario de tipo hada asociado a la vida eterna", a: "Xerneas", prefix: "Empieza por X" },
       { q: "Amiga y rival del protagonista en la regi\xF3n de Kalos, de car\xE1cter alegre y en\xE9rgico, que parte junto a ti desde Pueblo Boceto", a: "Xana", prefix: "Empieza por X" },
       { q: "Cient\xEDfico de \xE9lite del Team Flare con gafas de visor y cabello extravagante que investiga la energ\xEDa de la megaevoluci\xF3n para Lysson", a: "Xero", prefix: "Empieza por X" },
+      { q: "Ultraente con m\xE1s ataque especial", a: "Xurkitree", prefix: "Empieza por X" },
       { q: "Fen\xF3meno exclusivo de la regi\xF3n de Galar que transforma a los Pok\xE9mon a un tama\xF1o gigantesco durante tres turnos", a: "Dinamax", prefix: "Contiene la X" }
     ],
     "Y": [
-      { q: "Pok\xE9mon legendario siniestro/volador asociado a la destrucci\xF3n, de Pok\xE9mon Y", a: "Yveltal", prefix: "Empieza por Y" },
-      { q: "Pok\xE9mon que lleva puesta una m\xE1scara con su antiguo rostro", a: "Yamask", prefix: "Empieza por Y" },
+      { q: "Pok\xE9mon legendario que absorbe la energ\xEDa vital de los seres vivos", a: "Yveltal", prefix: "Empieza por Y" },
+      { q: "Su m\xE1scara representa la cara que pose\xEDa cuando era humano; a veces se le saltan las l\xE1grimas al contemplarlo", a: "Yamask", prefix: "Empieza por Y" },
       { q: "L\xEDder del Gimnasio de Ciudad Olivo en la regi\xF3n de Johto, especializada en el tipo Acero y cuidadora del Ampharos del Faro Olivo", a: "Yasmina", prefix: "Empieza por Y" },
       { q: "Ciudad costera de la regi\xF3n de Kalos c\xE9lebre por albergar la Torre Maestra y el gimnasio de tipo Lucha de Corelia", a: "Yantra", prefix: "Empieza por Y" },
-      { q: "Pok\xE9mon de tipo bicho/volador que evoluciona al conocer el movimiento Poder Pasado", a: "Yanmega", prefix: "Empieza por Y" }
+      { q: "Pok\xE9mon de tipo bicho/volador que evoluciona al conocer el movimiento Poder Pasado", a: "Yanmega", prefix: "Empieza por Y" },
+      { q: "Pok\xE9mon de Galar usado por los pastores para controlar el reba\xF1o; al correr, genera electricidad por la base de la cola", a: "Yamper", prefix: "Empieza por Y" },
+      { q: "Pok\xE9mon mangosta que fue introducido en Alola para controlar la poblaci\xF3n de Rattatas", a: "Yungoos", prefix: "Empieza por Y" }
     ],
     "Z": [
       { q: "Aparato de precisi\xF3n que reacciona a objetos que no se ven", a: "Zahor\xED", prefix: "Empieza por Z" },
@@ -9707,47 +9764,28 @@
       { q: "Baya que restaura 10 pp de un movimiento a elecci\xF3n", a: "Zanama", prefix: "Empieza por Z" },
       { q: "Baya muy com\xFAn en el juego competitivo que restaura un 25% de los PS m\xE1ximos del portador cuando su salud cae por debajo de la mitad", a: "Zidra", prefix: "Empieza por Z" },
       { q: "Baya consumible capaz de curar inmediatamente al Pok\xE9mon de cualquier problema de estado alterado o de la confusi\xF3n", a: "Ziuela", prefix: "Empieza por Z" },
-      { q: "Peque\xF1a baya de sabor picante que cura al instante la par\xE1lisis si un Pok\xE9mon la lleva equipada", a: "Zreza", prefix: "Empieza por Z" }
+      { q: "Peque\xF1a baya de sabor picante que cura al instante la par\xE1lisis si un Pok\xE9mon la lleva equipada", a: "Zreza", prefix: "Empieza por Z" },
+      { q: "Pok\xE9mon legendario que cambia de forma al sostener una espada oxidada con la boca", a: "Zacian", prefix: "Empieza por Z" },
+      { q: "\xDAnico Pok\xE9mon capaz de usar el movimiento Embate Supremo, que duplica su potencia al ejecutarlo contra un enemigo Dinamax", a: "Zamazenta", prefix: "Empieza por Z" },
+      { q: 'Pok\xE9mon singular que tiene una forma "pap\xE1" en la que lleva atado al cuello un pa\xF1uelo rosa', a: "Zarude", prefix: "Empieza por Z" },
+      { q: "Siempre se mueve hacia adelante y hacia atr\xE1s frotando la nariz contra el suelo; es f\xE1cil identificarlo por las huellas en zigzag que deja", a: "Zigzagoon", prefix: "Empieza por Z" },
+      { q: "Es el Pok\xE9mon m\xE1s fuerte de Camila, l\xEDder de tipo el\xE9ctrico de la regi\xF3n de Teselia", a: "Zebstrika", prefix: "Empieza por Z" },
+      { q: "Debido al tiempo que pasaron en oscuras cavernas, sus ojos se atrofiaron y perdieron su visi\xF3n; usan ondas ultras\xF3nicas para comprobar los alrededores y detectar obst\xE1culos o enemigos", a: "Zubat", prefix: "Empieza por Z" },
+      { q: "Pok\xE9mon drag\xF3n con dos cabezas las cuales se llevan muy mal entre ellas", a: "Zweilous", prefix: "Empieza por Z" },
+      { q: "Actualmente su megaevoluci\xF3n es el Pok\xE9mon con mayor ataque especial jam\xE1s registrado", a: "Zygarde", prefix: "Empieza por Z" }
     ]
   };
-  var PASAPALABRA_HISTORY_MAX_GAMES = 10;
-  var PASAPALABRA_HISTORY_STORAGE_KEY = "pk_pasapalabra_question_history_v1";
-  function pasapalabraQuestionKey(entry) {
-    return entry.q + "|" + entry.a;
-  }
-  function loadPasapalabraHistory() {
-    try {
-      const raw = localStorage.getItem(PASAPALABRA_HISTORY_STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      return [];
-    }
-  }
-  function savePasapalabraHistory(history) {
-    try {
-      localStorage.setItem(PASAPALABRA_HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch (e) {
-    }
-  }
   function pickPasapalabraQuestions() {
-    const recentGames = loadPasapalabraHistory().slice(-PASAPALABRA_HISTORY_MAX_GAMES);
     const result = {};
-    const thisGamePicks = {};
     Object.keys(PASAPALABRA_QUESTIONS_DEFAULT).forEach((letter) => {
       const pool = PASAPALABRA_QUESTION_BANK[letter];
       if (pool && pool.length) {
-        const usedKeys = new Set(recentGames.map((g) => g[letter]).filter(Boolean));
-        let available = pool.filter((entry) => !usedKeys.has(pasapalabraQuestionKey(entry)));
-        if (!available.length) available = pool;
-        const pick = available[Math.floor(Math.random() * available.length)];
-        result[letter] = { q: pick.q, a: pick.a, alts: pick.alts, prefix: pick.prefix };
-        thisGamePicks[letter] = pasapalabraQuestionKey(pick);
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        result[letter] = { q: pick.q, a: pick.a, prefix: pick.prefix };
       } else {
         result[letter] = PASAPALABRA_QUESTIONS_DEFAULT[letter];
       }
     });
-    savePasapalabraHistory([...recentGames, thisGamePicks].slice(-PASAPALABRA_HISTORY_MAX_GAMES));
     return result;
   }
   var PASAPALABRA_QUESTIONS_DEFAULT = {
@@ -10274,6 +10312,7 @@
     addChatMessage(null, `\u{1F9EC} \xA1Modo Pokerus abierto! Escribe !pokemon [nombre] para apuntarte (\xA1disponible toda la Pok\xE9dex Nacional, ${ARENA_POKEMON_DB.length} Pok\xE9mon!)`, "system");
   }
   function renderPokerusLobby() {
+    detachModalFromGameContent();
     const content = $("game-content");
     content.innerHTML = `
     <!-- La clase "game-scene" es la misma que llevan las escenas de lobby
@@ -10858,6 +10897,7 @@
   }
   var POKERUS_LOG_PLACEHOLDER = '<p style="color:var(--muted);font-style:italic;">\xA1Elegid puerta antes de que se acabe el tiempo!</p>';
   function renderPokerusRound(prevOverlay) {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     const alivePlayers = ms.order.map((u) => ms.players[u]).filter((p) => p.alive);
@@ -11274,6 +11314,7 @@
     addChatMessage(null, `\u2600\uFE0F \xA1Rayo Solar est\xE1 abierto! Escribe !pokemon [nombre] para apuntarte. \xA1Disponible toda la Pok\xE9dex Nacional (${ARENA_POKEMON_DB.length} Pok\xE9mon)!`, "system");
   }
   function renderRayoSolarLobby() {
+    detachModalFromGameContent();
     const content = $("game-content");
     content.innerHTML = `
     <div class="rayo-lobby-box game-scene" id="rayo-lobby-scene">
@@ -11467,6 +11508,7 @@
     ms.tickInterval = setInterval(rayoTick, RAYO_TICK_MS);
   }
   function renderRayoSolarField() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     const players = ms.order.map((u) => ms.players[u]);
@@ -11989,7 +12031,11 @@
   var SAFARI_STAND_ANIM_SPEED = 2.6;
   var SAFARI_WALK_ANIM_SPEED = 3.2;
   var SAFARI_TICK_MS = 50;
-  var SAFARI_WALK_PX_PER_S = 55 / 6 * 2;
+  var SAFARI_WALK_PX_PER_S = 55 / 6 * 2 * 1.25;
+  var SAFARI_WOBBLE_PCT_PER_S = 11;
+  var SAFARI_WOBBLE_RANGE_PCT = 6;
+  var SAFARI_WOBBLE_MIN_MS = 120;
+  var SAFARI_WOBBLE_MAX_MS = 420;
   var SAFARI_START_X_PCT = 8;
   var SAFARI_TOP_SIGN_CLEARANCE_PCT = 19;
   var SAFARI_FINISH_X_PCT = 90;
@@ -12042,6 +12088,7 @@
     addChatMessage(null, `\u{1F33F} \xA1Zona Safari abierta! Escribe !pokemon [nombre] para apuntarte. \xA1Disponible toda la Pok\xE9dex Nacional (${ARENA_POKEMON_DB.length} Pok\xE9mon)!`, "system");
   }
   function renderSafariLobby() {
+    detachModalFromGameContent();
     const content = $("game-content");
     content.innerHTML = `
     <div class="safari-lobby-box game-scene" id="safari-lobby-scene">
@@ -12211,6 +12258,10 @@
       const p = ms.players[u];
       p.xPct = SAFARI_START_X_PCT;
       p.yPct = SAFARI_TOP_SIGN_CLEARANCE_PCT + (i + 0.5) / n * (92 - SAFARI_TOP_SIGN_CLEARANCE_PCT);
+      p.laneYPct = p.yPct;
+      p.wobbleRangePct = Math.min(SAFARI_WOBBLE_RANGE_PCT, (92 - SAFARI_TOP_SIGN_CLEARANCE_PCT) / n * 0.42);
+      p.wobbleVy = 0;
+      p.wobbleLeftMs = 0;
       p.moving = false;
       p.alive = true;
       p.reachedGoal = false;
@@ -12221,6 +12272,7 @@
     ms.tickInterval = setInterval(safariTick, SAFARI_TICK_MS);
   }
   function renderSafariField() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     const players = ms.order.map((u) => ms.players[u]);
@@ -12332,6 +12384,29 @@
     const outer = $("safari-field-outer");
     return outer ? { w: outer.clientWidth || 900, h: outer.clientHeight || 500 } : { w: 900, h: 500 };
   }
+  function applySafariWobble(p, dt, el) {
+    p.wobbleLeftMs = (p.wobbleLeftMs || 0) - dt;
+    if (p.wobbleLeftMs <= 0) {
+      p.wobbleVy = (Math.random() * 2 - 1) * SAFARI_WOBBLE_PCT_PER_S;
+      p.wobbleLeftMs = SAFARI_WOBBLE_MIN_MS + Math.random() * (SAFARI_WOBBLE_MAX_MS - SAFARI_WOBBLE_MIN_MS);
+    }
+    if (p.laneYPct == null) p.laneYPct = p.yPct;
+    const range = p.wobbleRangePct != null ? p.wobbleRangePct : SAFARI_WOBBLE_RANGE_PCT;
+    const minY = Math.max(SAFARI_TOP_SIGN_CLEARANCE_PCT, p.laneYPct - range);
+    const maxY = Math.min(92, p.laneYPct + range);
+    let y = p.yPct + p.wobbleVy * (dt / 1e3);
+    if (y <= minY) {
+      y = minY;
+      p.wobbleVy = Math.abs(p.wobbleVy);
+      p.wobbleLeftMs = 0;
+    } else if (y >= maxY) {
+      y = maxY;
+      p.wobbleVy = -Math.abs(p.wobbleVy);
+      p.wobbleLeftMs = 0;
+    }
+    p.yPct = y;
+    if (el) el.style.top = p.yPct + "%";
+  }
   function safariTick() {
     const ms = state.modeState;
     if (!ms || ms.phase !== "playing") return;
@@ -12348,6 +12423,7 @@
         p.xPct = Math.min(SAFARI_EXIT_X_PCT, p.xPct + deltaPct);
         const el2 = $(p.elId);
         if (el2) el2.style.left = p.xPct + "%";
+        applySafariWobble(p, dt, el2);
         const finishElapsedMs = now - (p.finishStartAt || now);
         if (p.xPct >= SAFARI_EXIT_X_PCT || finishElapsedMs >= SAFARI_FINISH_WALK_MS) {
           p.finishing = false;
@@ -12369,6 +12445,7 @@
       }
       const el = $(p.elId);
       if (el) el.style.left = p.xPct + "%";
+      applySafariWobble(p, dt, el);
     });
     renderSafariStatusList();
     checkSafariEnd();
@@ -13001,6 +13078,7 @@
     return user.replace(/[^a-zA-Z0-9_-]/g, "");
   }
   function renderVistaLinceLobby() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     content.innerHTML = `
@@ -13133,6 +13211,7 @@
     startVistaLinceRound();
   }
   function renderVistaLinceField() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     const players = ms.order.map((u) => ms.players[u]);
@@ -19159,6 +19238,7 @@
     return normalizeAnswer(s).replace(/[^a-z0-9]/g, "");
   }
   function renderVoltorbLobby() {
+    detachModalFromGameContent();
     const content = $("game-content");
     content.innerHTML = `
     <div class="ve-lobby-box game-scene" id="ve-lobby-scene">
@@ -19281,6 +19361,7 @@
     });
   }
   function renderVoltorbField() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     const players = ms.order.map((u) => ms.players[u]);
@@ -19370,6 +19451,14 @@
     bubble.className = "ve-speech-bubble" + (kind ? " " + kind : "");
     bubble.textContent = text;
     el.appendChild(bubble);
+    const fieldEl = $("ve-field-outer");
+    if (fieldEl) {
+      const margin = 10;
+      const needed = bubble.offsetHeight + margin;
+      if (el.getBoundingClientRect().top - needed < fieldEl.getBoundingClientRect().top) {
+        bubble.classList.add("below");
+      }
+    }
     el.classList.add("ve-has-bubble");
     if (player.bubbleTimeout) clearTimeout(player.bubbleTimeout);
     player.bubbleTimeout = setTimeout(() => {
@@ -20012,6 +20101,7 @@
     addChatMessage(null, `\u{1F30B} \xA1El Volc\xE1n est\xE1 abierto! Escribe !pokemon [nombre] para apuntarte. \xA1Disponible toda la Pok\xE9dex Nacional (${ARENA_POKEMON_DB.length} Pok\xE9mon)!`, "system");
   }
   function renderVolcanLobby() {
+    detachModalFromGameContent();
     const content = $("game-content");
     content.innerHTML = `
     <div class="volcan-lobby-box game-scene" id="volcan-lobby-scene">
@@ -20190,6 +20280,7 @@
     ms.tickInterval = setInterval(volcanCountdownTick, VOLCAN_COUNTDOWN_TICK_MS);
   }
   function renderVolcanField() {
+    detachModalFromGameContent();
     const content = $("game-content");
     const ms = state.modeState;
     const players = ms.order.map((u) => ms.players[u]);
@@ -21018,6 +21109,7 @@
       ms.lobbyImgs = {};
       ms.lobbyCards = {};
     }
+    detachModalFromGameContent();
     const content = $("game-content");
     content.innerHTML = `
     <div class="zor-lobby-box game-scene" id="zor-lobby-scene">
@@ -21159,6 +21251,7 @@
   function renderZoroarksMap() {
     const ms = state.modeState;
     if (!ms) return;
+    detachModalFromGameContent();
     const content = $("game-content");
     content.innerHTML = `
     <div class="zor-wrap">

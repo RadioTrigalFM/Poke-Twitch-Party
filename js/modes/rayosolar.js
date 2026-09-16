@@ -12,7 +12,7 @@ import { backToMenu } from '../modeLauncher.js';
 import { PMDSprite, PMD_DIR, pmdHasLocalSprite, pmdPreload } from '../pmdSprite.js';
 import { rollShinyPokemon } from '../pokemonShiny.js';
 import { state } from '../state.js';
-import { $, addScore, toast } from '../utils.js';
+import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
 
 /* =========================================================
    MODO RAYO SOLAR
@@ -178,6 +178,11 @@ export function startRayoSolar() {
    LOBBY
    --------------------------------------------------------- */
 function renderRayoSolarLobby() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la partida
+  // anterior estuvo en pantalla completa, este innerHTML destruiría el
+  // propio nodo de #modal junto con la escena vieja, rompiendo en
+  // silencio "← Menú"/"⚙️ Ajustes" el resto de la sesión.
+  detachModalFromGameContent();
   const content = $('game-content');
   content.innerHTML = `
     <div class="rayo-lobby-box game-scene" id="rayo-lobby-scene">
@@ -414,6 +419,9 @@ function startRayoSolarMatch() {
    CAMPO DE JUEGO
    --------------------------------------------------------- */
 function renderRayoSolarField() {
+  // Mismo motivo que en renderRayoSolarLobby(): ver detachModalFromGameContent()
+  // en utils.js.
+  detachModalFromGameContent();
   const content = $('game-content');
   const ms = state.modeState;
   const players = ms.order.map(u => ms.players[u]);

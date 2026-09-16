@@ -11,7 +11,7 @@ import { backToMenu } from '../modeLauncher.js';
 import { OwWalker } from '../owWalker.js';
 import { PMDSprite, PMD_DIR } from '../pmdSprite.js';
 import { state } from '../state.js';
-import { $, toast } from '../utils.js';
+import { $, detachModalFromGameContent, toast } from '../utils.js';
 
 /* =========================================================
    MODO ZOROARKS
@@ -735,6 +735,11 @@ function renderZoroarksLobby() {
     ms.lobbyImgs = {};
     ms.lobbyCards = {};
   }
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   content.innerHTML = `
     <div class="zor-lobby-box game-scene" id="zor-lobby-scene">
@@ -910,6 +915,11 @@ function startZoroarksMatch() {
 function renderZoroarksMap() {
   const ms = state.modeState;
   if (!ms) return;
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   content.innerHTML = `
     <div class="zor-wrap">

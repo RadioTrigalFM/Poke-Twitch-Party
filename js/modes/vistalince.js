@@ -11,7 +11,7 @@ import { toggleLobbyExpelPopover } from '../lobbyExpel.js';
 import { backToMenu } from '../modeLauncher.js';
 import { PMDSprite, PMD_DIR, pmdPreload } from '../pmdSprite.js';
 import { state } from '../state.js';
-import { $, addScore, toast } from '../utils.js';
+import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
 
 /* =========================================================
    MODO VISTA LINCE
@@ -310,6 +310,11 @@ function sanitizeUser(user) {
    LOBBY
    --------------------------------------------------------- */
 function renderVistaLinceLobby() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   const ms = state.modeState;
   content.innerHTML = `
@@ -463,6 +468,11 @@ function startVistaLinceMatch() {
    CAMPO DE JUEGO (RANCHO)
    --------------------------------------------------------- */
 function renderVistaLinceField() {
+  // Ver detachModalFromGameContent() en utils.js: sin esto, si la escena
+  // anterior estuvo en pantalla completa, este innerHTML destruiria el
+  // propio nodo de #modal junto con ella, rompiendo en silencio
+  // "← Menu"/"⚙️ Ajustes" el resto de la sesion.
+  detachModalFromGameContent();
   const content = $('game-content');
   const ms = state.modeState;
   const players = ms.order.map(u => ms.players[u]);
