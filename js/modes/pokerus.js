@@ -12,6 +12,7 @@ import { PMDSprite, PMD_DIR, pmdHasLocalSprite, pmdPreload } from '../pmdSprite.
 import { rollShinyPokemon } from '../pokemonShiny.js';
 import { state } from '../state.js';
 import { $, addScore, detachModalFromGameContent, showModal, toast } from '../utils.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO POKERUS
@@ -217,6 +218,19 @@ export function startPokerus() {
     // startPokerusRound más abajo).
     pokerus2Started: false,
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js).
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms) return;
+    if (ms.lobbySprites) Object.values(ms.lobbySprites).forEach(d => d.sprite && d.sprite.destroy());
+    if (ms.fieldSprites) {
+      Object.values(ms.fieldSprites).forEach(d => {
+        if (d.arriveTimeout) clearTimeout(d.arriveTimeout);
+        if (d.sprite) d.sprite.destroy();
+      });
+    }
+  });
   renderPokerusLobby();
   addChatMessage(null, `🧬 ¡Modo Pokerus abierto! Escribe !pokemon [nombre] para apuntarte (¡disponible toda la Pokédex Nacional, ${ARENA_POKEMON_DB.length} Pokémon!)`, 'system');
 }

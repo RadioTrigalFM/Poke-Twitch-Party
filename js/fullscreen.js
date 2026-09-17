@@ -83,10 +83,6 @@ export function currentFullscreenElement() {
   return sceneFallbackEl || null;
 }
 
-export function isFullscreenActive() {
-  return !!currentFullscreenElement();
-}
-
 /* ---------- Mecánica de entrada/salida de pantalla completa ----------
    Vive aquí (y no en eventListeners.js, donde se define el botón "⛶" de
    cada escena) para que otros módulos -como rayosolar.js, al reconstruir

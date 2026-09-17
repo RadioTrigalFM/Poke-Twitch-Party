@@ -223,16 +223,6 @@ const PASAPALABRA_QUESTION_BANK = {
     { q: 'Pokémon de novena generación que arrastra el cuerpo por el suelo al desplazarse dejando un rastro de sal', a: 'Nacli', prefix: 'Empieza por N' },
     { q: 'Ultraente que controla a Samina generándole un problema mental', a: 'Nihilego', prefix: 'Empieza por N' },
   ],
-  'Ñ': [
-    { q: 'Meseta de Kanto donde se celebra la Liga Pokémon', a: 'Añil', prefix: 'Contiene la Ñ' },
-    { q: 'Movimiento básico de tipo Normal en el que el usuario desgarra al rival con garras afiladas para causarle daño', a: 'Arañazo', prefix: 'Contiene la Ñ' },
-    { q: 'Movimiento de estado de tipo Normal que reduce en un nivel el Ataque de los rivales al emitir un sonido tierno o intimidante', a: 'Gruñido', prefix: 'Contiene la Ñ' },
-    { q: 'Movimiento de estado que capta la atención del oponente para redirigir hacia sí mismo todos los ataques en combates dobles o triples', a: 'Señuelo', prefix: 'Contiene la Ñ' },
-    { q: 'Naturaleza Pokémon que aumenta el Ataque y disminuye la Defensa física', a: 'Huraña', prefix: 'Contiene la Ñ' },
-    { q: 'Habilidad característica de Mareanie y Toxapex que garantiza asestar siempre golpes críticos si el rival está envenenado', a: 'Ensañamiento', prefix: 'Contiene la Ñ' },
-    { q: 'Entrenador corpulento y con barba que suele rondar cuevas y senderos rocosos usando Pokémon como Geodude u Onix', a: 'Montañero', prefix: 'Contiene la Ñ' },
-    { q: 'Apellido del presidente de Devon SA', a: 'Peñas', prefix: 'Contiene la Ñ' },
-  ],
   'O': [
     { q: 'Pokeball con mayor índice de captura si se usa en cuevas o durante la noche', a: 'Ocaso', prefix: 'Empieza por O' },
     { q: 'Ciudad costera de la región de Johto famosa por albergar el Faro Brillante y el gimnasio de tipo Acero de Yasmina', a: 'Olivo', prefix: 'Empieza por O' },
@@ -422,33 +412,45 @@ export function pickPasapalabraQuestions() {
 }
 
 
+// Pregunta de reserva de cada letra: SOLO se usa si el banco de arriba se
+// quedara sin preguntas para esa letra (ver pickPasapalabraQuestions). Sus
+// claves son además las que definen qué letras juega el rosco, así que
+// esta tabla y el banco tienen que cubrir exactamente el mismo abecedario
+// (A-Z, sin Ñ).
+//
+// Esta tabla estaba rota: 16 de sus 27 respuestas no empezaban siquiera
+// por la letra que les tocaba (B -> "charizard", H -> "blastoise",
+// Z -> "arbok"...) y ninguna traía "prefix", así que si alguna vez llegaba
+// a usarse el cartel mostraba "Letra X" en lugar del enunciado y la
+// respuesta correcta no encajaba con la letra del rosco. Ahora cada
+// respuesta empieza de verdad por su letra y lleva su prefix, con el mismo
+// formato que las del banco.
 const PASAPALABRA_QUESTIONS_DEFAULT = {
-  'A': { q: 'Pokémon inicial de tipo Planta en la región de Kanto', a: 'bulbasaur' },
-  'B': { q: 'Evolución final de Charmander', a: 'charizard' },
-  'C': { q: 'Pokémon ratón eléctrico, mascota de Ash', a: 'pikachu' },
-  'D': { q: 'Pokémon legendario dragón de Kanto (rojo)', a: 'charizard' },
-  'E': { q: 'Pokémon que puede evolucionar en múltiples formas', a: 'eevee' },
-  'F': { q: 'Tipo de Pokémon como Charmander o Flareon', a: 'fuego' },
-  'G': { q: 'Pokémon fantasma/veneno, evolución de Haunter', a: 'gengar' },
-  'H': { q: 'Pokémon agua con concha, evolución de Wartortle', a: 'blastoise' },
-  'I': { q: 'Región donde ocurre Pokémon Oro y Plata', a: 'johto' },
-  'J': { q: 'Nombre del rival de Ash en Kanto (iniciales)', a: 'gary' },
-  'K': { q: 'Nombre del protagonista de Pokémon en japonés', a: 'satoshi' },
-  'L': { q: 'Pokémon legendario eléctrico de la 1ra generación', a: 'zapdos' },
-  'M': { q: 'Pokémon psíquico legendario creado genéticamente', a: 'mewtwo' },
-  'N': { q: 'Nombre del mundo de los Pokémon (continente)', a: 'kanto' },
-  'Ñ': { q: 'Objeto que evoluciona a Pokémon (ej: Magmar)', a: 'niño' },
-  'O': { q: 'Objeto que cura todos los PS de un Pokémon', a: 'orbearroz' },
-  'P': { q: 'Criaturas del juego, abreviatura del nombre', a: 'pokemon' },
-  'Q': { q: 'Equipo rival liderado por Giovanni', a: 'quimera' },
-  'R': { q: 'Habilidad especial de los Pokémon en combate', a: 'rapidez' },
-  'S': { q: 'Pokémon durmiente gigante que come mucho', a: 'snorlax' },
-  'T': { q: 'Dispositivo para identificar Pokémon', a: 'pokedex' },
-  'U': { q: 'Ataque legendario que usa Mewtwo', a: 'ultrabajón' },
-  'V': { q: 'Pokémon tortuga inicial de Kanto', a: 'squirtle' },
-  'W': { q: 'Jefe del Team Rocket (nombre en inglés)', a: 'giovanni' },
-  'X': { q: 'Pokémon artificial tipo normal de la 1ra gen', a: 'porygon' },
-  'Y': { q: 'Pokémon legendario pájaro de fuego', a: 'moltres' },
-  'Z': { q: 'Pokémon serpiente venenosa, evoluciona de Ekans', a: 'arbok' },
+  'A': { q: 'Pokémon psíquico que se teletransporta para huir de los combates', a: 'Abra', prefix: 'Empieza por A' },
+  'B': { q: 'Pokémon número #1 de la Pokédex Nacional', a: 'Bulbasaur', prefix: 'Empieza por B' },
+  'C': { q: 'Evolución final de Charmander', a: 'Charizard', prefix: 'Empieza por C' },
+  'D': { q: 'Evolución final de Dratini', a: 'Dragonite', prefix: 'Empieza por D' },
+  'E': { q: 'Pokémon de tipo normal capaz de evolucionar en múltiples formas distintas', a: 'Eevee', prefix: 'Empieza por E' },
+  'F': { q: 'Tipo al que pertenecen Charmander y Flareon', a: 'Fuego', prefix: 'Empieza por F' },
+  'G': { q: 'Pokémon fantasma/veneno, evolución de Haunter', a: 'Gengar', prefix: 'Empieza por G' },
+  'H': { q: 'Pokémon fantasma/veneno intermedio entre Gastly y Gengar', a: 'Haunter', prefix: 'Empieza por H' },
+  'I': { q: 'Pokémon planta/veneno, evolución de Bulbasaur', a: 'Ivysaur', prefix: 'Empieza por I' },
+  'J': { q: 'Región donde transcurren Pokémon Oro y Plata', a: 'Johto', prefix: 'Empieza por J' },
+  'K': { q: 'Región donde transcurren Pokémon Rojo y Azul', a: 'Kanto', prefix: 'Empieza por K' },
+  'L': { q: 'Pokémon agua/hielo con forma de plesiosaurio que transporta gente sobre su lomo', a: 'Lapras', prefix: 'Empieza por L' },
+  'M': { q: 'Pokémon psíquico legendario creado genéticamente a partir de Mew', a: 'Mewtwo', prefix: 'Empieza por M' },
+  'N': { q: 'Pokémon de tipo veneno que evoluciona a Nidoqueen con una Piedra Lunar', a: 'Nidorina', prefix: 'Empieza por N' },
+  'O': { q: 'Pokémon roca/tierra con forma de serpiente de rocas, el más fuerte de Brock', a: 'Onix', prefix: 'Empieza por O' },
+  'P': { q: 'Pokémon ratón eléctrico, el compañero de Ash en el anime', a: 'Pikachu', prefix: 'Empieza por P' },
+  'Q': { q: 'Estado alterado que resta PS al final de cada turno y que provocan movimientos como Ascuas', a: 'Quemadura', prefix: 'Empieza por Q' },
+  'R': { q: 'Organización criminal de Kanto liderada por Giovanni', a: 'Rocket', alts: ['Team Rocket', 'Equipo Rocket'], prefix: 'Empieza por R' },
+  'S': { q: 'Pokémon normal enorme y dormilón que bloquea carreteras en Kanto', a: 'Snorlax', prefix: 'Empieza por S' },
+  'T': { q: 'Pokémon pseudolegendario roca/siniestro, evolución final de Larvitar', a: 'Tyranitar', prefix: 'Empieza por T' },
+  'U': { q: 'Pokémon psíquico con forma de símbolo del que existen 28 formas distintas', a: 'Unown', prefix: 'Empieza por U' },
+  'V': { q: 'Pokémon planta/veneno, evolución final de Bulbasaur', a: 'Venusaur', prefix: 'Empieza por V' },
+  'W': { q: 'Pokémon de tipo agua, evolución de Squirtle', a: 'Wartortle', prefix: 'Empieza por W' },
+  'X': { q: 'Pokémon legendario hada/planta que protagoniza la portada de Pokémon X', a: 'Xerneas', prefix: 'Empieza por X' },
+  'Y': { q: 'Pokémon legendario siniestro/volador que protagoniza la portada de Pokémon Y', a: 'Yveltal', prefix: 'Empieza por Y' },
+  'Z': { q: 'Pokémon eléctrico legendario, el ave trueno de Kanto', a: 'Zapdos', prefix: 'Empieza por Z' },
 };
 

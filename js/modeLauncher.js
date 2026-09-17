@@ -1,6 +1,7 @@
 import { addChatMessage } from './chat.js';
 import { playModeMusic, stopModeMusic } from './audio.js';
 import { exitSceneFullscreen } from './fullscreen.js';
+import { runModeCleanup } from './modeCleanup.js';
 import { startArena } from './modes/arena.js';
 import { startAvalugg } from './modes/avalugg.js';
 import { startExtranjeria } from './modes/extranjeria.js';
@@ -132,84 +133,12 @@ export function backToMenu() {
   // de quedarse en silencio: playModeMusic ya hace el cruce de fundidos con
   // la que estuviera sonando en el modo que se acaba de abandonar.
   playModeMusic('menu');
-  if (state.modeState && state.modeState.timer) clearInterval(state.modeState.timer);
-  if (state.modeState && state.modeState.bossAttackTimer) clearInterval(state.modeState.bossAttackTimer);
-  if (state.modeState && state.modeState.tickInterval) clearInterval(state.modeState.tickInterval);
-  if (state.modeState && state.modeState.zoneTimeoutId) clearTimeout(state.modeState.zoneTimeoutId);
-  if (state.modeState && state.modeState.autoAdvanceTimeout) clearTimeout(state.modeState.autoAdvanceTimeout);
-  if (state.modeState && state.modeState.champWaitTimeout) clearTimeout(state.modeState.champWaitTimeout);
-  // Torneo del Coliseo (ver arena.js): todos sus temporizadores pendientes
-  // (anuncios de combate, de ganador, de ronda, autoarranque del cuadro...)
-  // cuelgan de un único array para poder cancelarlos de golpe al salir del
-  // modo sin pasar por "Volver a Arena Infinita".
-  if (state.modeState && state.modeState.tournament && state.modeState.tournament.timeouts) {
-    state.modeState.tournament.timeouts.forEach(id => clearTimeout(id));
-  }
-  if (state.modeState && state.modeState.spawnTimeout) clearTimeout(state.modeState.spawnTimeout);
-  if (state.modeState && state.modeState.guessCountdownInterval) clearInterval(state.modeState.guessCountdownInterval);
-  if (state.modeState && state.modeState.nextRoundTimeout) clearTimeout(state.modeState.nextRoundTimeout);
-  if (state.modeState && state.modeState.categoryBannerTimeout) clearTimeout(state.modeState.categoryBannerTimeout);
-  if (state.modeState && state.modeState.moveTimeout) clearTimeout(state.modeState.moveTimeout);
-  if (state.modeState && state.modeState.growTimeout) clearTimeout(state.modeState.growTimeout);
-  if (state.modeState && state.modeState.blastTimeout) clearTimeout(state.modeState.blastTimeout);
-  if (state.modeState && state.modeState.voltorbSprite) state.modeState.voltorbSprite.destroy();
-  if (state.modeState && state.modeState.crossers) {
-    Object.values(state.modeState.crossers).forEach(c => c.sprite && c.sprite.destroy());
-  }
-  if (state.modeState && state.modeState.arenaSprites) {
-    if (state.modeState.arenaSprites.left) state.modeState.arenaSprites.left.destroy();
-    if (state.modeState.arenaSprites.right) state.modeState.arenaSprites.right.destroy();
-  }
-  if (state.modeState && state.modeState.queueDom) {
-    Object.values(state.modeState.queueDom).forEach(d => d.sprite && d.sprite.destroy());
-  }
-  if (state.modeState && state.modeState.lobbySprites) {
-    Object.values(state.modeState.lobbySprites).forEach(d => d.sprite && d.sprite.destroy());
-  }
-  // Modo Boss: sprite PMD del jefe y el de cada combatiente apuntado (con
-  // su posible trayecto pendiente de ida o vuelta).
-  if (state.modeState && state.modeState.bossSprite) state.modeState.bossSprite.destroy();
-  // Segundo jefe simultáneo (ver ms.boss2/BOSS_FINAL_BOSS_NAMES en
-  // boss.js): solo existe en la fase final de los niveles con dos jefes a
-  // la vez, pero se limpia siempre por si acaso.
-  if (state.modeState && state.modeState.bossSprite2) state.modeState.bossSprite2.destroy();
-  if (state.modeState && state.modeState.fighterSprites) {
-    Object.values(state.modeState.fighterSprites).forEach(entry => {
-      if (entry.walkTimer) clearTimeout(entry.walkTimer);
-      if (entry.sprite) entry.sprite.destroy();
-    });
-  }
-  // Ficha de combatiente del modo Boss (ver showBossFiche en boss.js): se
-  // añade directamente a <body>, fuera de #game-content, así que hay que
-  // quitarla a mano al salir del modo o quedaría huérfana en el DOM.
-  if (state.modeState && state.modeState.bossFicheEl) state.modeState.bossFicheEl.remove();
-  // Votación del Modo AFK del modo Boss (ver ms.afkVote/queueBossAfkVote en
-  // boss.js), si quedó alguna a medias al salir del modo: se para su
-  // cuenta atrás y se quita su overlay, añadido directamente a <body> o al
-  // elemento a pantalla completa (fuera de #game-content también).
-  if (state.modeState && state.modeState.afkVote && state.modeState.afkVote.tickInterval) {
-    clearInterval(state.modeState.afkVote.tickInterval);
-  }
-  const staleBossAfkVoteOverlay = document.getElementById('boss-afk-vote-overlay');
-  if (staleBossAfkVoteOverlay) staleBossAfkVoteOverlay.remove();
-  if (state.modeState && state.modeState.fallTimeouts) {
-    state.modeState.fallTimeouts.forEach(id => clearTimeout(id));
-  }
-  if (state.modeState && state.modeState.entranceTimeouts) {
-    state.modeState.entranceTimeouts.forEach(id => clearTimeout(id));
-  }
-  if (state.modeState && state.modeState.fieldSprites) {
-    Object.values(state.modeState.fieldSprites).forEach(d => {
-      if (d.arriveTimeout) clearTimeout(d.arriveTimeout);
-      if (d.sprite) d.sprite.destroy();
-    });
-  }
-  // Modo El Volcán: sprite PMD de Heatran, si sigue en pantalla (cayendo,
-  // disparando o subiendo) al salir del modo.
-  if (state.modeState && state.modeState.heatran) {
-    if (state.modeState.heatran.sprite) state.modeState.heatran.sprite.destroy();
-    if (state.modeState.heatran.el) state.modeState.heatran.el.remove();
-  }
+  // Toda la limpieza del modo (temporizadores, sprites, overlays sueltos
+  // fuera de #game-content...) la declara cada modo en su propio
+  // startXxx() con registerModeCleanup(); aquí solo se dispara. Ver
+  // modeCleanup.js para el porqué y para el barrido automático de
+  // temporizadores que sirve de red de seguridad.
+  runModeCleanup();
   state.modeState = null;
   showScreen('menu-screen');
 }

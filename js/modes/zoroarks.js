@@ -12,6 +12,7 @@ import { OwWalker } from '../owWalker.js';
 import { PMDSprite, PMD_DIR } from '../pmdSprite.js';
 import { state } from '../state.js';
 import { $, detachModalFromGameContent, toast } from '../utils.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO ZOROARKS
@@ -420,6 +421,16 @@ export function startZoroarks() {
     // internamente al resolver las muertes de cada noche.
     wolves: new Set(),
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js): los walkers de los
+  // aldeanos. Sus temporizadores (roundTimer, nightTimeout,
+  // nameOverlapInterval, locationPhaseDelayTimeout) los cancela el barrido
+  // automático por su nombre.
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms || !ms.players) return;
+    Object.values(ms.players).forEach(p => { if (p.walker) p.walker.destroy(); });
+  });
   renderZoroarksLobby();
   if (wasFullscreen) {
     // Restaura la pantalla completa sobre el lobby recién creado (ver el

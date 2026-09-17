@@ -268,7 +268,6 @@ export function connectTwitch(channel, token) {
       const head = (sepIdx === -1 ? rest : rest.slice(0, sepIdx)).trim().split(' ');
       const trailing = sepIdx === -1 ? '' : rest.slice(sepIdx + 2);
       const command = head[0];
-      const params = head.slice(1);
 
       if (command === 'NOTICE') {
         if (/authentication failed|improperly formatted auth/i.test(trailing)) {
@@ -285,20 +284,20 @@ export function connectTwitch(channel, token) {
       }
 
       if (command === 'PRIVMSG') {
-        // Antes se descartaba aquí cualquier mensaje cuyo autor coincidiera
-        // con ownLogin (el login con el que se autentica esta conexión),
-        // asumiendo que serían "ecos" de mensajes enviados por el propio
-        // bot. Pero este cliente NUNCA envía PRIVMSG a Twitch (no hay
-        // ningún ws.send('PRIVMSG ...') en todo el fichero), así que ese
-        // filtro no evitaba ningún eco: lo único que hacía era tirar a la
-        // basura, en silencio, los mensajes escritos por la cuenta del
-        // token usado para conectar. Como el caso más habitual es que el
-        // streamer genere el token con SU PROPIA cuenta (no con una cuenta
-        // de bot aparte), sus propios mensajes en el chat nunca llegaban a
-        // verse ni a contar como comandos, y como sin token el login usado
-        // es un "justinfanXXXXX" aleatorio que nunca coincide con nadie
-        // real, el problema solo aparecía con token puesto: exactamente el
-        // síntoma reportado.
+        // No se filtran los mensajes cuyo autor coincide con ownLogin (el
+        // login con el que se autentica esta conexión). Antes sí se hacía,
+        // asumiendo que serían "ecos" de lo que manda el propio bot, y eso
+        // tiraba a la basura en silencio los mensajes escritos por la
+        // cuenta del token: como lo habitual es que el streamer genere el
+        // token con SU PROPIA cuenta, sus mensajes en el chat nunca se
+        // veían ni contaban como comandos.
+        //
+        // Que no haya filtro NO produce mensajes duplicados: el gateway IRC
+        // de Twitch no devuelve al emisor sus propios PRIVMSG (responde con
+        // USERSTATE), así que lo que este cliente envía por mirrorToTwitch
+        // no vuelve por aquí. Ojo si algún día se usa otro transporte
+        // (EventSub, por ejemplo) o se conectan dos instancias con el mismo
+        // token: ahí sí habría que distinguir el eco, y el sitio es este.
         state.viewers.add(username);
         updateViewerCount();
         // Las tags de Twitch (badges) llegan en cada PRIVMSG y nos dicen si

@@ -25,7 +25,7 @@ import { $, showModal } from './utils.js';
 // apertura del lobby y el resultado final de la partida.
 const MODE_MESSAGES = [
   { key: 'pasapalabra', name: '🎯 Pasapalabra', lines: [
-    '🔒 El streamer ha bloqueado la participación del chat: los comandos (!<respuesta>, !puntos...) dejan de funcionar hasta que se reactive.',
+    '🔒 El streamer ha bloqueado la participación del chat: los comandos para responder dejan de funcionar hasta que se reactive.',
   ] },
   { key: 'rayosolar', name: '☀️ Rayo Solar', lines: [
     '☀️ ¡Rayo Solar está abierto! Escribe !pokemon [nombre] para apuntarte. ¡Disponible toda la Pokédex Nacional (XXXX Pokémon)!',

@@ -13,6 +13,7 @@ import { PMDSprite, PMD_DIR, pmdHasLocalSprite, pmdPreload } from '../pmdSprite.
 import { rollShinyPokemon } from '../pokemonShiny.js';
 import { state } from '../state.js';
 import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO RAYO SOLAR
@@ -162,6 +163,22 @@ export function startRayoSolar() {
     tickInterval: null,     // intervalo que mueve a los jugadores que están caminando
     lastTick: 0,
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js). El temporizador de
+  // paseo de Venusaur (ms.venusaur.wanderTimeout) lo cancela el barrido
+  // automático; aquí va su sprite, que si no seguiría animándose.
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms) return;
+    if (ms.venusaur && ms.venusaur.sprite) ms.venusaur.sprite.destroy();
+    if (ms.lobbySprites) Object.values(ms.lobbySprites).forEach(d => d.sprite && d.sprite.destroy());
+    if (ms.fieldSprites) {
+      Object.values(ms.fieldSprites).forEach(d => {
+        if (d.arriveTimeout) clearTimeout(d.arriveTimeout);
+        if (d.sprite) d.sprite.destroy();
+      });
+    }
+  });
   renderRayoSolarLobby();
   if (wasFullscreen) {
     // Restaura la pantalla completa sobre la escena del lobby recién

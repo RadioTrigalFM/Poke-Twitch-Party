@@ -1,4 +1,3 @@
-import { addChatMessage } from './chat.js';
 import { handleArenaCmd } from './modes/arena.js';
 import { handleAvaluggCmd } from './modes/avalugg.js';
 import { handleBossCmd } from './modes/boss.js';
@@ -11,13 +10,23 @@ import { handleVistaLinceCmd } from './modes/vistalince.js';
 import { handleVoltorbCmd } from './modes/voltorbexplosivo.js';
 import { handleVolcanCmd } from './modes/volcan.js';
 import { handleZoroarksCmd } from './modes/zoroarks.js';
+import { addChatMessage } from './chat.js';
 import { state } from './state.js';
 import { isJoinCommandBlocked } from './subsMode.js';
 
 /* =========================================================
    COMMAND ROUTER
+   -----------------------------------------------------------
+   Punto único de entrada de los comandos del chat. Cada modo expone un
+   solo handler (handleXxxCmd) que recibe TODOS sus comandos, incluido el
+   de inscripción (!pokemon / !participo): antes el modo Boss era una
+   excepción y su !pokemon se interceptaba envolviendo este router desde
+   otro módulo (modes/pokeballSharedHandler.js), lo que duplicaba el
+   filtro del Modo Subs y hacía que el orden de los imports decidiera si
+   la intercepción llegaba a aplicarse o no. Ahora ese caso vive donde le
+   corresponde, dentro de handleBossCmd (ver modes/boss.js).
    ========================================================= */
-export let handleChatCommand = function (user, msg) {
+export function handleChatCommand(user, msg) {
   const text = msg.trim();
   const parts = text.split(/\s+/);
   const cmd = parts[0].toLowerCase();
@@ -46,8 +55,4 @@ export let handleChatCommand = function (user, msg) {
     case 'voltorb': handleVoltorbCmd(user, cmd, parts, text); break;
     case 'avalugg': handleAvaluggCmd(user, cmd, parts, text); break;
   }
-};
-
-export function setHandleChatCommand(fn) {
-  handleChatCommand = fn;
 }

@@ -18,9 +18,6 @@
    ========================================================= */
 import { OW_NPC_HEAD_TOP_RATIO } from './owNpcHeadDb.js';
 
-const OW_LOCAL_BASE = 'assets/ow_npcs';
-const OW_FRAME_W = 16;
-const OW_FRAME_H = 32;
 
 // Ficheros verificados dentro de graphics/object_events/pics/people/ de
 // cada repo. Se excluyen adrede las hojas con formato irregular (anchura o
@@ -111,10 +108,6 @@ export const OW_NPC_DB = [
 export function getRandomOwNpc(gender) {
   const pool = gender ? OW_NPC_DB.filter(n => n.gender === gender) : OW_NPC_DB;
   return pool[Math.floor(Math.random() * pool.length)];
-}
-
-export function owNpcSpriteSheetUrl(npc) {
-  return `${OW_LOCAL_BASE}/${npc.repo}/${npc.file}.png`;
 }
 
 /* =========================================================

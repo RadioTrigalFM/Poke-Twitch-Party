@@ -22,6 +22,7 @@ import { state } from '../state.js';
 import { isBroadcaster } from '../subsMode.js';
 import { $, addScore, detachModalFromGameContent, showModal, toast } from '../utils.js';
 import { currentFullscreenElement } from '../fullscreen.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 // Icono OFICIAL de un objeto (sprite descargado de PokeAPI, ver
 // assets/items/ y bossItemsDb.js), para usar en cualquier sitio de la
@@ -1293,6 +1294,29 @@ export function startBoss() {
     // dura la de "qué objeto sale del cofre").
     afkVoteQueue: [],
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js): sprites del jefe y
+  // de los combatientes, más los dos elementos que el modo cuelga
+  // directamente del <body> (fuera de #game-content, así que no se los
+  // lleva por delante el innerHTML del siguiente modo).
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms) return;
+    if (ms.bossSprite) ms.bossSprite.destroy();
+    // Segundo jefe simultáneo: solo existe en la fase final de los niveles
+    // con dos jefes a la vez, pero se limpia siempre por si acaso.
+    if (ms.bossSprite2) ms.bossSprite2.destroy();
+    if (ms.fighterSprites) {
+      Object.values(ms.fighterSprites).forEach(entry => {
+        if (entry.walkTimer) clearTimeout(entry.walkTimer);
+        if (entry.sprite) entry.sprite.destroy();
+      });
+    }
+    if (ms.lobbySprites) Object.values(ms.lobbySprites).forEach(d => d.sprite && d.sprite.destroy());
+    if (ms.bossFicheEl) ms.bossFicheEl.remove();
+    const staleAfkVoteOverlay = document.getElementById('boss-afk-vote-overlay');
+    if (staleAfkVoteOverlay) staleAfkVoteOverlay.remove();
+  });
   // Se fija ya aquí el punto de guardado con el que arranca esta partida
   // (nivel, fase 1 y objetos con los que empieza, ver saveBossProgress):
   // así queda guardado el nivel también la primerísima vez que se juega a
@@ -1843,7 +1867,8 @@ function maybeStartBossAfkItemRecipientVote(itemId) {
 /* ---------------------------------------------------------
    COMANDOS DE CHAT
    --------------------------------------------------------- */
-// Gestiona !pokemon [nombre]: se llama desde pokeballSharedHandler.js.
+// Gestiona !pokemon [nombre]: se llama desde handleBossCmd (ver el router
+// de comandos en commandRouter.js).
 // Funciona en dos momentos: durante el lobby inicial (fase de inscripción,
 // admite combatientes nuevos y cambios), y en cualquier momento de la fase
 // 1 de cada nivel posterior —tanto en la pausa "levelSelect" como ya en
@@ -1852,7 +1877,7 @@ function maybeStartBossAfkItemRecipientVote(itemId) {
 // caso solo para combatientes YA apuntados, nunca para apuntarse por
 // primera vez. Pasada la fase 1, o ya bloqueados los cambios, no se
 // admite ningún uso.
-export function handleBossJoin(user, parts) {
+function handleBossJoin(user, parts) {
   const ms = state.modeState;
   if (!ms) return;
   const isLobby = ms.phase === 'lobby';
@@ -1998,6 +2023,16 @@ export function handleBossCmd(user, cmd, parts) {
   // resto de comandos de juego se ignoran hasta que se resuelva, igual
   // que ya pasa durante las pausas "levelSelect" o "chestPause".
   if (handleBossAfkVoteCommand(user, cmd)) return;
+
+  // Inscripción a la lucha. Se resuelve aquí, antes de la comprobación de
+  // "¿está este usuario apuntado?" de más abajo, porque precisamente es el
+  // comando con el que se apunta. El filtro del Modo Subs ya lo ha
+  // aplicado el router (ver isJoinCommandBlocked/JOIN_COMMANDS_BY_MODE en
+  // subsMode.js), así que aquí no hay que repetirlo.
+  if (cmd === '!pokemon') {
+    handleBossJoin(user, parts || []);
+    return;
+  }
 
   // !levelup se gestiona aparte de la comprobación de abajo porque el
   // streamer puede usarlo para mejorar a OTRO combatiente (!levelup
@@ -3641,7 +3676,7 @@ function performDuelAttack(side) {
   // espera en su puesto (ver handleBossAbility más abajo y
   // attackerPlayer.attackTypeIndex justo debajo, para el lado 'player').
   let attackerName, attackerType, defenderTypes, moveName, attackerAtk;
-  let attackerSprite, attackerDir, defenderSprite, defenderDir, attackerAnchor, defenderAnchor;
+  let attackerSprite, attackerDir, defenderSprite, defenderDir, defenderAnchor;
   if (side === 'player') {
     attackerName = b.player.pokemon.name;
     // Tipo de ataque elegido con !habilidad1/!habilidad2 (ver
@@ -3656,7 +3691,7 @@ function performDuelAttack(side) {
     moveName = struggling ? 'Forcejeo' : (b.player.pokemon.moves[0] || 'Ataque');
     attackerSprite = playerFighter.sprite; attackerDir = arenaDirectionFor('left');
     defenderSprite = bossSlot.sprite; defenderDir = arenaDirectionFor('right');
-    attackerAnchor = playerFighter.el; defenderAnchor = $(bossSlot.zoneId);
+    defenderAnchor = $(bossSlot.zoneId);
     // Ataque efectivo del combatiente, según sus mejoras de !levelup ataque
     // invertidas hasta ahora en el nivel actual (ver playerEffectiveStats).
     attackerAtk = playerEffectiveStats(ms, b.player.user).atk;
@@ -3709,7 +3744,7 @@ function performDuelAttack(side) {
     moveName = struggling ? 'Forcejeo' : (moves[0] || 'Ataque');
     attackerSprite = bossSlot.sprite; attackerDir = arenaDirectionFor('right');
     defenderSprite = playerFighter.sprite; defenderDir = arenaDirectionFor('left');
-    attackerAnchor = $(bossSlot.zoneId); defenderAnchor = playerFighter.el;
+    defenderAnchor = playerFighter.el;
     // Ataque efectivo del jefe, según las mejoras aleatorias acumuladas por
     // el bando enemigo a lo largo de los niveles (ver bossEffectiveStats).
     // Los jefes que ya se han transformado a mitad de combate (ver

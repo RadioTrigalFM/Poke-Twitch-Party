@@ -8,9 +8,7 @@ import { $, showScreen } from './utils.js';
    juego): explica en detalle los comandos y la mecánica de un
    modo, con capturas de pantalla reales tomadas en Modo Demo. El
    contenido de cada modo vive en HOWTO_CONTENT y se renderiza bajo
-   demanda (ver renderHowTo) la primera vez que se abre su ficha;
-   una vez montado el HTML de un modo se guarda en caché
-   (renderedModes) para no reconstruirlo cada vez.
+   demanda (ver renderHowTo) cada vez que se abre su ficha.
    ========================================================= */
 
 const HOWTO_CONTENT = {
@@ -429,8 +427,6 @@ const HOWTO_CONTENT = {
     ],
   },
 };
-
-let renderedModes = new Set();
 
 function renderHowTo(mode) {
   const data = HOWTO_CONTENT[mode];

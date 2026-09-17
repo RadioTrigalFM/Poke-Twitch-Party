@@ -13,6 +13,7 @@ import {
   playVeCorrect, playVeWrong, playVeTimeout, playVeGrow, playVeExplosion,
   playVeRoundComplete, playVeVictory, playVeDraw, playModeMusic,
 } from '../audio.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO VOLTORB EXPLOSIVO
@@ -106,6 +107,13 @@ export function startVoltorbExplosivo() {
     turnTickInterval: null,      // setInterval que refresca la UI del contador cada segundo
     turnDeadlineTs: null,        // timestamp (Date.now()) en el que expira el turno actual
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js).
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms || !ms.voltorbSprite) return;
+    ms.voltorbSprite.destroy();
+  });
   pmdPreload(VE_VOLTORB_DEX);
   renderVoltorbLobby();
   if (wasFullscreen) {

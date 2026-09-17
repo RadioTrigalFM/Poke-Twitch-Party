@@ -1769,6 +1769,29 @@
     flex-shrink: 0;
   }
   .rosco svg { width: 100%; height: 100%; }
+  /* Unown del centro del rosco (ver #pp-unown en renderPasapalabra/
+     updatePpUnown, pasapalabra.js). El anillo de letras vive en el SVG a
+     radio 200 de un viewBox de 500x500, con celdas de radio 22, así que
+     el círculo interior (radio ~178, es decir ~71% del ancho de .rosco)
+     queda completamente libre: el Unown ocupa el 60% para dejar aire de
+     sobra y no llegar a tocar ninguna celda. Mismo elemento y mismas
+     reglas dentro y fuera de pantalla completa: .rosco ya cambia de
+     tamaño entre un caso y otro (ver "#pp-scene:fullscreen .rosco" más
+     arriba), y al ir en porcentaje el Unown se escala con ella sola. */
+  .pp-unown {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 60%;
+    height: 60%;
+    transform: translate(-50%, -50%);
+    /* Sprite de 96x96 ampliado varias veces: sin esto se ve borroso en vez
+       de con el pixel art nítido que tiene el resto del proyecto (mismo
+       criterio que ya usan los sprites PMD, ver pmdSprite.js). */
+    image-rendering: pixelated;
+    pointer-events: none;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,.5));
+  }
   .letter-cell {
     cursor: pointer;
     transition: all .2s;

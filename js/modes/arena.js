@@ -16,6 +16,7 @@ import {
   playArenaRoundStart, playArenaTournamentChampion,
   playArenaHit, playArenaCrit, playArenaDodge,
 } from '../audio.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    ARENA MODE — COLISEO POKÉMON
@@ -157,6 +158,20 @@ export function startArena() {
     queueHeightOverrideFrac: loadQueueHeightOverride(), // 0..1 (fracción de la altura de la escena, ya fijada de una calibración anterior) o null si se usa DEFAULT_QUEUE_HEIGHT_FRAC
     tournament: null, // objeto del Torneo (ver TOURNAMENT_* más arriba) mientras está activo, null si no hay ninguno en marcha
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js). Los temporizadores
+  // con nombre *Timer/*Timeout/*Interval los cancela el barrido automático;
+  // aquí solo van los sprites PMD y los ids sueltos del torneo.
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms) return;
+    if (ms.tournament && ms.tournament.timeouts) ms.tournament.timeouts.forEach(id => clearTimeout(id));
+    if (ms.arenaSprites) {
+      if (ms.arenaSprites.left) ms.arenaSprites.left.destroy();
+      if (ms.arenaSprites.right) ms.arenaSprites.right.destroy();
+    }
+    if (ms.queueDom) Object.values(ms.queueDom).forEach(d => d.sprite && d.sprite.destroy());
+  });
   renderArena();
   state.modeState.tickInterval = setInterval(arenaAutoTick, ARENA_TURN_MS);
   addChatMessage(null, `🏛️ ¡Coliseo abierto! Escribe !pokemon [nombre] para hacer cola. ¡Disponible toda la Pokédex Nacional (${ARENA_POKEMON_DB.length} Pokémon)!`, 'system');

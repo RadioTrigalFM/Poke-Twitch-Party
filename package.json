@@ -3,11 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "description": "PokéTwitch Party - build config",
+  "type": "module",
   "scripts": {
-    "build": "esbuild js/main.js --bundle --format=iife --outfile=js/bundle.js",
-    "watch": "esbuild js/main.js --bundle --format=iife --outfile=js/bundle.js --watch"
+    "build": "esbuild js/main.js --bundle --minify --format=iife --outfile=js/bundle.js && node tools/stamp-assets.mjs",
+    "watch": "esbuild js/main.js --bundle --format=iife --outfile=js/bundle.js --watch",
+    "lint": "eslint js tools"
   },
   "devDependencies": {
-    "esbuild": "^0.25.12"
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.0",
+    "globals": "^16.5.0"
   }
 }

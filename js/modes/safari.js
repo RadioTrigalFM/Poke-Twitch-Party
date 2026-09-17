@@ -14,6 +14,7 @@ import {
   playSafariMatchStart, playSafariEyesClose, playSafariEyesReady,
   playSafariHit, playSafariTimeUp, playSafariVictory, playSafariWipeout,
 } from '../audio.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO ZONA SAFARI
@@ -100,6 +101,21 @@ export function startSafari() {
     timeLeftMs: SAFARI_TIMER_START_S * 1000, // solo desciende mientras los ojos NO están 'idle' (cerrados/en transición)
     timeUp: false,
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js). Los temporizadores
+  // de los ojos del streamer (ms.eyes.closeTimer / ms.eyes.countdownInterval)
+  // los cancela el barrido automático.
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms) return;
+    if (ms.lobbySprites) Object.values(ms.lobbySprites).forEach(d => d.sprite && d.sprite.destroy());
+    if (ms.fieldSprites) {
+      Object.values(ms.fieldSprites).forEach(d => {
+        if (d.arriveTimeout) clearTimeout(d.arriveTimeout);
+        if (d.sprite) d.sprite.destroy();
+      });
+    }
+  });
   renderSafariLobby();
   if (wasFullscreen) {
     // Restaura la pantalla completa sobre el lobby recién creado (ver el

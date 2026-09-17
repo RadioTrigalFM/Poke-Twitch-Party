@@ -7,6 +7,7 @@ import { backToMenu } from '../modeLauncher.js';
 import { OwWalker } from '../owWalker.js';
 import { state } from '../state.js';
 import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO GLACIAL AVALUGG
@@ -453,6 +454,15 @@ export function startAvalugg() {
     entranceTimeouts: [],
     stepTimeouts: [],       // temporizadores del movimiento paso a paso, para poder cancelarlos
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js): los walkers de los
+  // jugadores. Las listas de ids (fallTimeouts, entranceTimeouts,
+  // stepTimeouts) las cancela el barrido automático por su nombre.
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms || !ms.players) return;
+    Object.values(ms.players).forEach(p => { if (p.walker) p.walker.destroy(); });
+  });
   renderAvaluggLobby();
   if (wasFullscreen) {
     // Restaura la pantalla completa sobre el lobby recién creado (ver el

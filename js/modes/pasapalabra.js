@@ -5,6 +5,7 @@ import {
 import { addChatMessage, escapeHtml } from '../chat.js';
 import { pickPasapalabraQuestions } from '../data/questionsDb.js';
 import { backToMenu } from '../modeLauncher.js';
+import { modeSetTimeout } from '../modeCleanup.js';
 import { state } from '../state.js';
 import { $, addScore, normalizeAnswer, showModal } from '../utils.js';
 
@@ -27,18 +28,26 @@ function ppNorm(s) {
 // Comprueba una respuesta contra la respuesta principal de la pregunta
 // (qData.a) y, si las tiene, sus respuestas alternativas válidas
 // (qData.alts, p.ej. singular/plural o nombre corto/largo del mismo
-// objeto: "Bici"/"Bicicleta", "Ficha"/"Fichas" — ver questionsDb.js). Cada
-// candidata se compara con el mismo criterio de siempre (substring en
-// cualquiera de los dos sentidos tras ppNorm), así que un acierto contra
-// cualquiera de las alternativas cuenta igual que contra la principal.
+// objeto: "Bici"/"Bicicleta", "Ficha"/"Fichas" — ver questionsDb.js). Un
+// acierto contra cualquiera de las alternativas cuenta igual que contra la
+// principal.
+//
+// La comparación es de IGUALDAD EXACTA sobre el texto ya normalizado (ver
+// ppNorm), no de "contiene". Antes se aceptaba como buena cualquier
+// respuesta que fuera substring de la correcta o al revés, con la idea de
+// ser tolerante con espacios, guiones y tildes; pero eso no lo arregla
+// ppNorm por su cuenta y abría un agujero enorme: con la respuesta
+// "Bulbasaur", escribir "!b" ya daba por acertada la letra, porque
+// "bulbasaur".includes("b") es cierto. El chat podía llevarse el rosco
+// entero spameando vocales sueltas. La tolerancia que sí se quería
+// (mayúsculas/minúsculas, espacios, guiones y tildes) la sigue dando
+// ppNorm, que se aplica a los dos lados antes de comparar: "Ho-Oh",
+// "ho oh" y "HOOH" siguen valiendo, pero "ho" ya no.
 function ppAnswerCorrect(qData, rawAnswer) {
   const answer = ppNorm(rawAnswer);
   if (!answer) return false;
   const candidates = [qData.a, ...(Array.isArray(qData.alts) ? qData.alts : [])];
-  return candidates.some(c => {
-    const correctAnswer = ppNorm(c);
-    return answer.includes(correctAnswer) || correctAnswer.includes(answer);
-  });
+  return candidates.some(c => ppNorm(c) === answer);
 }
 
 export function startPasapalabra() {
@@ -102,6 +111,13 @@ function renderPasapalabra() {
           <div class="pp-fs-col pp-fs-col-center">
             <div class="rosco">
               <svg viewBox="0 0 500 500" id="rosco-svg"></svg>
+              <!-- Unown en el centro del rosco: cada Pokémon de esta especie
+                   tiene la silueta de una letra distinta (ver pp-updateUnown
+                   más abajo), así que aquí se muestra el Unown de la letra
+                   que toca en cada momento (ver assets/pasapalabra/unown/).
+                   pointer-events:none porque es puramente decorativo: no
+                   debe robarle el click a nada que hubiera debajo. -->
+              <img id="pp-unown" class="pp-unown" alt="" aria-hidden="true">
             </div>
             <div class="timer-bar"><div class="timer-bar-fill" id="pp-timer" style="width:100%"></div></div>
             <div class="question-box" id="pp-question">
@@ -274,11 +290,47 @@ function renderRosco() {
     g.appendChild(txt);
     svg.appendChild(g);
   });
+  updatePpUnown();
+}
+
+// Pone en el centro del rosco (ver #pp-unown, dentro de .rosco en
+// renderPasapalabra) al Unown de la letra que esté activa en ese momento
+// -currentIndex, la misma que pinta en amarillo la celda "active" de
+// arriba-, con su sprite descargado en assets/pasapalabra/unown/ (ver
+// tools/download-unown.mjs). Unown es la especie Pokémon cuya silueta
+// cambia de forma según la letra que representa (A-Z), así que encaja
+// literalmente con lo que hace el rosco: no es solo decoración a juego con
+// el tema, es la MISMA idea que el propio modo. Sucede tanto dentro como
+// fuera de pantalla completa porque #pp-unown vive dentro de .rosco, que
+// es el mismo elemento del DOM en los dos casos (el CSS solo cambia su
+// tamaño; ver "#pp-scene:fullscreen .rosco" en styles.css) — no hay dos
+// roscos ni dos imágenes que mantener sincronizadas.
+//
+// Antes de la primera letra (currentIndex === -1, ver startPasapalabra)
+// no hay ninguna letra activa todavía, así que la imagen se queda oculta.
+function updatePpUnown() {
+  const ms = state.modeState;
+  const img = $('pp-unown');
+  if (!img || !ms) return;
+  const letter = ms.currentIndex >= 0 ? ms.letters[ms.currentIndex] : null;
+  if (!letter) {
+    img.hidden = true;
+    img.removeAttribute('src');
+    return;
+  }
+  img.src = `assets/pasapalabra/unown/unown-${letter.toLowerCase()}.png`;
+  img.alt = `Unown con forma de ${letter}`;
+  img.hidden = false;
 }
 
 function nextPasapalabraLetter() {
-  clearInterval(state.modeState.timer);
+  // Cinturón y tirantes: además de que modeSetTimeout ya no deja que un
+  // callback rezagado llegue hasta aquí con el modo cerrado, se comprueba
+  // el estado antes de tocarlo (esta función también se llama desde el
+  // propio temporizador de la letra).
   const ms = state.modeState;
+  if (!ms) return;
+  clearInterval(ms.timer);
   const letters = ms.letters;
   const total = letters.length;
 
@@ -383,7 +435,15 @@ function resolvePasapalabraLetter(winnerSide, who) {
       : '';
     textEl.textContent = `Respuesta correcta: ${qData ? qData.a : '—'}${altsTxt}`;
   }
-  setTimeout(() => {
+  // modeSetTimeout (ver modeCleanup.js) en vez de setTimeout pelado: este
+  // temporizador encadena la siguiente letra 1,5s después de acertar, y si
+  // el streamer volvía al menú dentro de esa ventana el callback se
+  // ejecutaba igualmente sobre un state.modeState ya puesto a null, y
+  // nextPasapalabraLetter() reventaba con un TypeError en su primera línea
+  // (clearInterval(state.modeState.timer)). modeSetTimeout lo cancela al
+  // salir del modo y, además, comprueba que siga activo el mismo modeState
+  // antes de ejecutar nada.
+  modeSetTimeout(() => {
     if (box) box.classList.remove('pp-solved-streamer', 'pp-solved-chat');
     nextPasapalabraLetter();
   }, 1500);
@@ -412,7 +472,7 @@ function submitStreamerAnswer(inputEl) {
     getStreamerInputEls().forEach(({ input: el }) => { if (el) el.value = ''; });
     playPpWrong();
     input.classList.add('pp-shake');
-    setTimeout(() => input.classList.remove('pp-shake'), 400);
+    modeSetTimeout(() => input.classList.remove('pp-shake'), 400);
     input.focus();
   }
 }
@@ -454,8 +514,9 @@ export function handlePasapalabraCmd(user, cmd, parts, text) {
 }
 
 function endPasapalabra() {
-  clearInterval(state.modeState.timer);
   const ms = state.modeState;
+  if (!ms) return;
+  clearInterval(ms.timer);
   let resultText;
   if (ms.streamerScore > ms.chatScore) {
     resultText = `🎤 ¡Gana el Streamer! ${ms.streamerScore} - ${ms.chatScore}`;

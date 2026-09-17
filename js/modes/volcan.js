@@ -13,6 +13,7 @@ import { PMDSprite, PMD_DIR, pmdHasLocalSprite, pmdPreload } from '../pmdSprite.
 import { rollShinyPokemon } from '../pokemonShiny.js';
 import { state } from '../state.js';
 import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO EL VOLCÁN
@@ -104,6 +105,24 @@ export function startVolcan() {
     roundLocked: false,     // true desde que se agota el tiempo hasta que empieza la nueva ronda: no se admiten comandos
     heatran: null,          // { el, sprite } — Heatran mientras está en pantalla durante una erupción
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js).
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms) return;
+    if (ms.lobbySprites) Object.values(ms.lobbySprites).forEach(d => d.sprite && d.sprite.destroy());
+    if (ms.fieldSprites) {
+      Object.values(ms.fieldSprites).forEach(d => {
+        if (d.arriveTimeout) clearTimeout(d.arriveTimeout);
+        if (d.sprite) d.sprite.destroy();
+      });
+    }
+    // Heatran, si sigue en pantalla (cayendo, disparando o subiendo).
+    if (ms.heatran) {
+      if (ms.heatran.sprite) ms.heatran.sprite.destroy();
+      if (ms.heatran.el) ms.heatran.el.remove();
+    }
+  });
   pmdPreload(VOLCAN_HEATRAN_DEX);
   renderVolcanLobby();
   if (wasFullscreen) {

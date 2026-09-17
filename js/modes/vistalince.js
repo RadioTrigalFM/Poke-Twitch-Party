@@ -12,6 +12,7 @@ import { backToMenu } from '../modeLauncher.js';
 import { PMDSprite, PMD_DIR, pmdPreload } from '../pmdSprite.js';
 import { state } from '../state.js';
 import { $, addScore, detachModalFromGameContent, toast } from '../utils.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO VISTA LINCE
@@ -218,6 +219,13 @@ export function startVistaLince() {
     nextRoundTimeout: null,
     roundBannerTimeout: null,
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js).
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms || !ms.crossers) return;
+    Object.values(ms.crossers).forEach(c => c.sprite && c.sprite.destroy());
+  });
   VL_POKEMON_POOL.forEach(p => pmdPreload(p.sprite));
   renderVistaLinceLobby();
   if (wasFullscreen) {

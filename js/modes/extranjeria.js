@@ -6,6 +6,7 @@ import {
 import { applyOwNpcSprite, getRandomOwNpc, owNpcHeadTopRatio } from '../data/owNpcDb.js';
 import { state } from '../state.js';
 import { $, addScore, showModal, toast } from '../utils.js';
+import { registerModeCleanup } from '../modeCleanup.js';
 
 /* =========================================================
    MODO CONTROL DE EXTRANJERÍA
@@ -131,7 +132,6 @@ const EXTR_AGE_RANGES = {
   old: [56, 80],
 };
 const EXTR_BOOTH_ENTER_MS = 550;   // duración de la animación de llegada al mostrador
-const EXTR_PASSPORT_DROP_MS = 550; // duración de la animación de caída del pasaporte sobre la mesa
 const EXTR_BUBBLE_HOLD_MS = 4500;  // tiempo que se mantiene visible cada mensaje del bocadillo antes de desvanecerse
 const EXTR_BUBBLE_HIDE_MS = 250;   // duración de la animación de desvanecido (debe casar con el CSS)
 const EXTR_BUBBLE_MAX = 4;         // nº máximo de mensajes apilados a la vez sobre la cabeza del NPC
@@ -155,6 +155,13 @@ export function startExtranjeria() {
     bubbleTimers: [],       // timeouts activos de los bocadillos apilados (ver extrShowBubble)
     newspaper: extrRollNewspaper(), // edición sorteada al entrar en el modo (ver extrOpenNewspaperModal)
   };
+
+  // Limpieza al abandonar el modo (ver modeCleanup.js).
+  registerModeCleanup(() => {
+    const ms = state.modeState;
+    if (!ms || !ms.queueDom) return;
+    Object.values(ms.queueDom).forEach(d => d.sprite && d.sprite.destroy());
+  });
   renderExtranjeria();
   addChatMessage(null, '🛂 ¡Control de Extranjería abierto! Escribe !participo para ponerte en la cola', 'system');
 }
