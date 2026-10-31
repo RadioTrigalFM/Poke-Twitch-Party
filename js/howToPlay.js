@@ -54,7 +54,7 @@ const HOWTO_CONTENT = {
     images: ['rayosolar-1.png'],
     intro: 'Todo el mapa es un prado partido en dos franjas: arriba pasea un Venusaur gigante y solitario; abajo están todos los Pokémon de los jugadores. Sobrevive a sus descargas de Rayo Solar hasta ser el último en pie.',
     commands: [
-      { cmd: '!pokemon [nombre]', desc: 'Apuntarse en el lobby eligiendo cualquier Pokémon de toda la Pokédex Nacional.' },
+      { cmd: '!pokemon [nombre]', desc: 'Apuntarse en el lobby eligiendo cualquier Pokémon de toda la Pokédex Nacional. También vale escribir solo !nombre (ej. !pikachu).' },
       { cmd: '!izquierda / !i', desc: 'Tu Pokémon camina sin parar hacia la izquierda hasta el borde del campo o hasta que le mandes otra orden.' },
       { cmd: '!derecha / !d', desc: 'Igual que el anterior, pero hacia la derecha.' },
       { cmd: '!stop', desc: 'Tu Pokémon se detiene donde esté.' },
@@ -86,7 +86,7 @@ const HOWTO_CONTENT = {
     images: ['arena-1.png'],
     intro: 'El Coliseo Pokémon: los espectadores hacen cola para retar al campeón actual en duelos automáticos 1 contra 1. Quien gana se queda de campeón esperando al siguiente retador.',
     commands: [
-      { cmd: '!pokemon [nombre]', desc: 'Ponerte en la cola del coliseo con el Pokémon que elijas (hasta 16 en cola a la vez).' },
+      { cmd: '!pokemon [nombre]', desc: 'Ponerte en la cola del coliseo con el Pokémon que elijas (hasta 16 en cola a la vez). También vale escribir solo !nombre (ej. !pikachu).' },
       { cmd: '!habilidad1 / !habilidad2', desc: 'Cambiar el tipo de tu ataque especial, si tu Pokémon tiene dos tipos.' },
       { cmd: '!torneo', desc: 'Apuntarte al Torneo mientras el Streamer tiene la inscripción abierta (hacen falta al menos 4 jugadores).' },
     ],
@@ -166,7 +166,7 @@ const HOWTO_CONTENT = {
     images: ['safari-1.png'],
     intro: 'Una galería de tiro: el Streamer apunta con el ratón y dispara a los Pokémon de los jugadores mientras ellos intentan cruzar todo el terreno hasta la meta.',
     commands: [
-      { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby con el Pokémon que quieras.' },
+      { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby con el Pokémon que quieras. También vale escribir solo !nombre (ej. !pikachu).' },
       { cmd: '!go', desc: 'Tu Pokémon empieza a caminar hacia la meta (empiezan todos quietos).' },
       { cmd: '!stop', desc: 'Tu Pokémon se detiene. Un Pokémon parado es intocable: solo se puede disparar a uno que esté caminando.' },
     ],
@@ -181,14 +181,14 @@ const HOWTO_CONTENT = {
       { icon: '🏁', label: 'Cruzar la meta', desc: 'Quien atraviesa todo el terreno sin caer queda a salvo el resto de la partida.' },
     ],
     stats: [
-      { icon: '🔍', value: '×2,2', label: 'Zoom de la mirilla', desc: 'Aumento que aplica la mirilla del Streamer al mantener pulsado el clic.' },
-      { icon: '⏱️', value: '100s', label: 'Reloj de la partida', desc: 'Solo baja mientras el Streamer tiene los ojos cerrados; con los ojos abiertos se detiene por completo.' },
+      { icon: '🔍', value: '×3,3', label: 'Zoom de la mirilla', desc: 'Aumento que aplica la mirilla del Streamer al mantener pulsado el clic.' },
+      { icon: '⏱️', value: '75s', label: 'Reloj de la partida', desc: 'Solo baja mientras el Streamer tiene los ojos cerrados; con los ojos abiertos se detiene por completo.' },
     ],
     outcomesTitle: '🏁 Cómo termina la partida',
     outcomes: [
       { icon: '💀', label: 'Elimina a todos', color: 'var(--red)', desc: 'El Streamer consigue disparar a todos los Pokémon antes de que crucen la meta.' },
       { icon: '🏁', label: 'Todos llegan a la meta', color: 'var(--green)', desc: 'Los Pokémon que sigan con vida consiguen cruzar el terreno entero.' },
-      { icon: '⏰', label: 'Se agota el reloj', color: 'var(--yellow)', desc: 'El contador de 100s con los ojos cerrados llega a 0 y todos los que no hayan cruzado mueren de golpe.' },
+      { icon: '⏰', label: 'Se agota el reloj', color: 'var(--yellow)', desc: 'El contador de 75s con los ojos cerrados llega a 0 y todos los que no hayan cruzado mueren de golpe.' },
     ],
     highlight: {
       icon: '🙈',
@@ -203,7 +203,7 @@ const HOWTO_CONTENT = {
     images: ['boss-1.png'],
     intro: 'Un jefe interminable: en cuanto cae uno, aparece otro distinto. Los espectadores se apuntan una única vez y el Streamer decide, combate tras combate, quién sube a luchar 1 contra 1 contra el jefe actual.',
     commands: [
-      { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby (o, mientras dure la fase 1 de cada nivel, cambiar el Pokémon con el que ya estabas apuntado).' },
+      { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby (o, mientras dure la fase 1 de cada nivel, cambiar el Pokémon con el que ya estabas apuntado). También vale escribir solo !nombre (ej. !pikachu).' },
       { cmd: '!habilidad1 / !habilidad2', desc: 'Cambiar el tipo de tu ataque, si tu Pokémon tiene dos tipos.' },
       { cmd: '!levelup ataque / vida / velocidad', desc: 'Gastar tu mejora disponible del nivel actual en esa estadística.' },
       { cmd: '!stats', desc: 'Consultar por chat tus estadísticas de combate actuales: ataque, vida, % de velocidad extra y mejoras !levelup pendientes.' },
@@ -253,7 +253,7 @@ const HOWTO_CONTENT = {
     images: ['pokerus-1.png'],
     intro: 'Al empezar, un porcentaje de los jugadores queda infectado en secreto por el Pokerus. Cada noche hay que elegir en qué sala dormir sin saber quién está contagiado... ¡y el virus se contagia durmiendo cerca de un infectado!',
     commands: [
-      { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby con cualquier Pokémon de la Pokédex Nacional (hasta 40 jugadores).' },
+      { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby con cualquier Pokémon de la Pokédex Nacional (hasta 40 jugadores). También vale escribir solo !nombre (ej. !pikachu).' },
       { cmd: '!&lt;número&gt; o !puerta &lt;número&gt;', desc: 'Ir a dormir a esa sala esa noche (p.ej. !3).' },
       { cmd: '!plaza o !0', desc: 'Quedarte a dormir en la plaza, a la intemperie (más riesgo de contagio).' },
     ],
@@ -295,7 +295,7 @@ const HOWTO_CONTENT = {
     images: ['volcan-1.png'],
     intro: 'Dos plataformas de roca volcánica. Cada cierto tiempo, la plataforma con más Pokémon encima entra en erupción y todos los que sigan ahí mueren. Sobrevive siendo el último en pie.',
     commands: [
-      { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby (hacen falta al menos 3 jugadores para empezar).' },
+      { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby (hacen falta al menos 3 jugadores para empezar). También vale escribir solo !nombre (ej. !pikachu).' },
       { cmd: '!izquierda / !i', desc: 'Mandar a tu Pokémon a la plataforma izquierda.' },
       { cmd: '!derecha / !d', desc: 'Mandar a tu Pokémon a la plataforma derecha.' },
     ],
@@ -421,9 +421,56 @@ const HOWTO_CONTENT = {
       { icon: '📐', value: '14×20', label: 'Tamaño del glaciar', desc: 'Filas × columnas de la cuadrícula; solo un único camino de casillas es seguro de principio a fin.' },
       { icon: '👤', value: '1', label: 'Jugadores mínimos', desc: 'Basta con un jugador apuntado para que el Streamer pueda empezar la partida.' },
     ],
+    togglesTitle: '🎛️ Opciones del Streamer',
+    toggles: [
+      { icon: '🧊', label: 'Regeneración de Plataformas', color: 'var(--blue)', desc: 'Se activa en la pantalla de inscripción (viene desmarcada por defecto). Al marcarla aparece una barra para elegir cada cuántos segundos, de 10 a 30, reaparecen las plataformas caídas: pasado ese tiempo desde que se rompió, cada casilla vuelve a verse como hielo normal. El camino seguro no cambia, así que si alguien pisa una casilla regenerada que no era segura, se romperá otra vez. Desmarcada, las casillas rotas lo siguen estando toda la partida.' },
+    ],
     outcomesTitle: '🏁 Fin de la partida',
     outcomes: [
       { icon: '🏆', label: 'Primero en cruzar', color: 'var(--yellow)', desc: 'Gana el primer jugador que toque el trofeo, en el centro de la última columna.' },
+    ],
+  },
+
+  // Modo secreto (se desbloquea con un código en Ajustes, ver codes.js).
+  // Aún no tiene captura de pantalla en assets/howto: sin `images` no se
+  // muestra galería.
+  charca: {
+    title: '🐸 La Charca',
+    intro: 'Ludicolo baila una secuencia de pasos y los Lotad del chat tienen que repetirla de memoria, en el mismo orden. Cada ronda añade un paso más: quien se equivoque, se olvide o se pase queda eliminado. Gana el último Lotad en pie.',
+    commands: [
+      { cmd: '!participo', desc: 'Apuntarte en el lobby (hasta 10 jugadores; hacen falta al menos 2 para empezar).' },
+      { cmd: '!giro / !paso / !roto / !salto / !agito', desc: 'Los cinco pasos de baile. Durante el turno de Lotad, escríbelos en el mismo orden en que los hizo Ludicolo. Fuera de ese turno se ignoran.' },
+      { cmd: '!giro !paso !salto', desc: 'Puedes mandar varios pasos en un mismo mensaje: cada palabra que sea un paso cuenta, en el orden en que la escribas.' },
+    ],
+    roles: [
+      { icon: '🎤', name: 'Streamer', tag: 'Elige la secuencia', color: 'var(--green)', desc: 'En cada ronda elige con los botones del panel los pasos que bailará Ludicolo. Cada paso tiene su propio color.' },
+      { icon: '🕺', name: 'Ludicolo', tag: 'El maestro de baile', color: 'var(--yellow)', desc: 'Baila la secuencia elegida paso a paso, y junto a él aparece el nombre de cada paso con su color.' },
+      { icon: '🐸', name: 'Lotad', tag: 'El chat', color: 'var(--blue)', desc: 'Cada jugador es un Lotad en la charca. Tiene que repetir la secuencia escribiendo los pasos en el chat.' },
+    ],
+    cycleTitle: '🔁 Ciclo de una ronda',
+    cycle: [
+      { icon: '🎛️', label: 'Elige el Streamer', desc: 'Tras el cartel de la ronda, el Streamer elige tantos pasos como el número de la ronda: 1 en la primera, 2 en la segunda...' },
+      { icon: '👀', label: 'Atentos', desc: 'Un cartel avisa de que Ludicolo va a bailar. Cuando se va, empieza la demostración.' },
+      { icon: '🧠', label: 'Memoriza', desc: 'Ludicolo baila la secuencia entera, en orden. Esta es la única vez que se enseña antes de responder.' },
+      { icon: '⌨️', label: 'Turno de Lotad', desc: 'Los jugadores tienen 20s para escribir en el chat la secuencia completa. Los últimos 5s suenan pitidos de cuenta atrás.' },
+      { icon: '💃', label: 'A Bailar', desc: 'Ludicolo repite la secuencia y, a continuación, todos los Lotad bailan a la vez lo que escribieron.' },
+      { icon: '✅', label: 'Comprobación', desc: 'Los que no han acertado quedan eliminados y empieza la ronda siguiente con un paso más.' },
+    ],
+    stats: [
+      { icon: '👥', value: '2-10', label: 'Jugadores', desc: 'Hacen falta al menos 2 apuntados para empezar; el lobby admite como máximo 10.' },
+      { icon: '⏱️', value: '20s', label: 'Tiempo de respuesta', desc: 'Lo que dura el turno de Lotad. Al cerrarse, ya no se acepta ningún paso más.' },
+      { icon: '🔢', value: 'N', label: 'Pasos en la ronda N', desc: 'La secuencia crece en uno cada ronda, así que cada vez es más difícil de recordar.' },
+      { icon: '🎶', value: '5', label: 'Pasos distintos', desc: 'Giro, Paso, Roto, Salto y Agito, cada uno con su color e icono.' },
+    ],
+    outcomesTitle: '🏁 Fin de la partida',
+    outcomes: [
+      { icon: '🏆', label: 'Último Lotad en pie', color: 'var(--yellow)', desc: 'Gana el único jugador que sigue vivo tras comprobar una ronda.' },
+      { icon: '💀', label: 'Nadie gana', color: 'var(--red)', desc: 'Si todos los que quedaban fallan en la misma ronda, la partida termina sin ganador.' },
+    ],
+    sections: [
+      { heading: 'Qué te elimina', text: 'Se elimina a quien no escriba ningún paso, se quede corto, escriba de más, o se equivoque en algún paso o en el orden. Para pasar la ronda tu secuencia tiene que ser idéntica a la de Ludicolo: mismos pasos, mismo número y mismo orden.' },
+      { heading: 'Sin marcha atrás', text: 'Lo que escribes durante el turno queda registrado tal cual y no se puede corregir ni borrar. Un contador bajo cada Lotad muestra cuántos pasos lleva recibidos, pero no si son correctos: eso solo se sabe al final.' },
+      { heading: 'Antes de empezar', text: 'En el lobby, el Streamer puede expulsar a un jugador pulsando sobre él; ese usuario no podrá volver a apuntarse en esa partida. Una vez empezada, nadie más puede entrar.' },
     ],
   },
 };

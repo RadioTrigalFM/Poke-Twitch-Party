@@ -6,7 +6,7 @@
 <title>PokéTwitch Party</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/press-start-2p@latest/latin.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/inter@latest/latin.css">
-<link rel="stylesheet" href="css/styles.css?v=283e9915">
+<link rel="stylesheet" href="css/styles.css?v=16a45dc9">
 </head>
 <body>
 
@@ -98,6 +98,7 @@
       <button class="howto-btn" data-mode="safari">❓ Cómo Jugar</button>
     </div>
     <div class="mode-card" data-mode="boss">
+      <button type="button" class="mode-unlocks-btn" id="boss-unlocks-btn" title="Contenido desbloqueable" aria-label="Contenido desbloqueable del Boss Cooperativo">🔓</button>
       <div class="mode-icon">👹</div>
       <div class="mode-name pixel">Boss Cooperativo</div>
       <div class="mode-desc">Apúntate con tu Pokémon y enfréntate 1 contra 1, por turnos automáticos, adéntrate en la mazmorra y derrota a los Jefes.</div>
@@ -161,6 +162,15 @@
       </div>
       <button class="howto-btn" data-mode="avalugg">❓ Cómo Jugar</button>
     </div>
+    <div class="mode-card mode-locked" data-mode="charca" data-unlock="charca">
+      <div class="mode-icon">🐸</div>
+      <div class="mode-name pixel">La Charca</div>
+      <div class="mode-desc">Baila repitiendo los pasos de baile realizados por Ludicolo en el mismo orden. (Máx. 10 jugadores)</div>
+      <div class="mode-cmds">
+        <b>!participo</b> · Apuntarse a la partida
+      </div>
+      <button class="howto-btn" data-mode="charca">❓ Cómo Jugar</button>
+    </div>
   </div>
 </div>
 
@@ -203,6 +213,14 @@
       <h3>Pokédex</h3>
       <button class="btn-secondary" id="pokemon-commands-btn">📖 Ver comandos de Pokémon</button>
       <p class="subs-mode-note is-visible">Consulta el comando exacto <b>!pokemon [nombre]</b> de cada Pokémon (ordenados por Pokédex Nacional) para inscribirse en los modos que lo usan.</p>
+    </div>
+    <div class="settings-section">
+      <h3>Códigos</h3>
+      <div class="code-row">
+        <input type="text" id="code-input" placeholder="Introduce un código" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40">
+        <button class="btn-primary" id="code-accept-btn">Aceptar</button>
+      </div>
+      <p class="code-feedback" id="code-feedback" role="status"></p>
     </div>
     <div class="settings-section">
       <p class="subs-mode-note is-visible">Haz click <a href="https://radiotrigalfm.github.io/radio/" target="_blank" rel="noopener noreferrer">AQUÍ</a> para jugar a Radio Trigal FM</p>
@@ -268,6 +286,6 @@
   </div>
 </div>
 
-<script src="js/bundle.js?v=44270ccf"></script>
+<script src="js/bundle.js?v=83bd11b1"></script>
 </body>
 </html>

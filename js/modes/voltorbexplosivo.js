@@ -10,7 +10,7 @@ import { state } from '../state.js';
 import { $, addScore, detachModalFromGameContent, normalizeAnswer, showModal, toast } from '../utils.js';
 import {
   playCountdownBeep, playVeJoin, playVeMatchStart, playVeCategory, playVeTurn,
-  playVeCorrect, playVeWrong, playVeTimeout, playVeGrow, playVeExplosion,
+  playVeCorrect, playVeWrong, playVeTimeout, playVeLifeLost, playVeGrow, playVeExplosion,
   playVeRoundComplete, playVeVictory, playVeDraw, playModeMusic,
 } from '../audio.js';
 import { registerModeCleanup } from '../modeCleanup.js';
@@ -410,9 +410,80 @@ function livesHtml(lives) {
   return '❤️'.repeat(l) + '🖤'.repeat(Math.max(0, VE_START_LIVES - l));
 }
 
-function updateVoltorbLivesUI(player) {
+// Actualiza el marcador de vidas de la tarjeta del jugador. Con lostOne=true
+// (acaba de perder una vida) el corazón perdido se dibuja aparte, con su
+// propia animación de rotura, y todo el marcador hace un pulso de aviso.
+function updateVoltorbLivesUI(player, lostOne = false) {
   const el = $(player.elId + '-lives');
-  if (el) el.textContent = livesHtml(player.lives);
+  if (!el) return;
+  if (!lostOne) { el.textContent = livesHtml(player.lives); return; }
+  const l = Math.max(0, player.lives);
+  const hearts = '❤️'.repeat(l);
+  const lost = '<span class="ve-heart-lost">💔</span>';
+  const rest = '🖤'.repeat(Math.max(0, VE_START_LIVES - l - 1));
+  el.innerHTML = hearts + lost + rest;
+  el.classList.remove('ve-lives-hit');
+  void el.offsetWidth;
+  el.classList.add('ve-lives-hit');
+  setTimeout(() => {
+    if (el.isConnected) { el.classList.remove('ve-lives-hit'); el.textContent = livesHtml(player.lives); }
+  }, 1500);
+}
+
+// Animación vistosa al perder una vida: destello rojo en todo el campo,
+// sacudida y tinte rojo del jugador, un corazón roto enorme que aparece
+// sobre él con un "-1" y sube desvaneciéndose, onda expansiva roja y
+// trocitos de corazón disparados en todas direcciones.
+const VE_LIFE_FX_MS = 1600;
+function spawnVoltorbLifeLostFx(player) {
+  const field = $('ve-field-outer');
+  const card = $(player.elId);
+  if (!field || !card) return;
+  const left = card.style.left;
+  const top = card.style.top;
+  const add = (cls, setup) => {
+    const n = document.createElement('div');
+    n.className = 've-life-fx ' + cls;
+    if (setup) setup(n);
+    field.appendChild(n);
+    setTimeout(() => n.remove(), VE_LIFE_FX_MS);
+    return n;
+  };
+
+  // Destello rojo de viñeta en todo el campo
+  add('ve-life-flash');
+
+  // Sacudida + tinte rojo del propio jugador
+  card.classList.remove('ve-hit');
+  void card.offsetWidth;
+  card.classList.add('ve-hit');
+  setTimeout(() => card.classList.remove('ve-hit'), 900);
+
+  // Ondas rojas (dos, la segunda con retraso)
+  [0, 0.18].forEach(delay => add('ve-life-ring', n => {
+    n.style.left = left; n.style.top = top;
+    n.style.animationDelay = delay + 's';
+  }));
+
+  // Corazón roto grande + "-1"
+  add('ve-life-heart', n => {
+    n.style.left = left; n.style.top = top;
+    n.innerHTML = '<span class="ve-life-heart-ico">💔</span><span class="ve-life-heart-txt">-1 vida</span>';
+  });
+
+  // Trocitos de corazón
+  const shards = 10;
+  for (let i = 0; i < shards; i++) {
+    const angle = (i / shards) * Math.PI * 2 + (Math.random() * 0.5 - 0.25);
+    const dist = 70 + Math.random() * 70;
+    add('ve-life-shard', n => {
+      n.style.left = left; n.style.top = top;
+      n.textContent = i % 2 ? '❤️' : '💔';
+      n.style.setProperty('--ve-dx', Math.cos(angle) * dist + 'px');
+      n.style.setProperty('--ve-dy', (Math.sin(angle) * dist - 20) + 'px');
+      n.style.setProperty('--ve-rot', (Math.random() * 360 - 180) + 'deg');
+    });
+  }
 }
 
 function markVoltorbPlayerDead(player) {
@@ -664,7 +735,9 @@ function handleVoltorbTurnTimeout(user) {
   if (!player || !player.alive) return;
 
   player.lives -= 1;
-  updateVoltorbLivesUI(player);
+  updateVoltorbLivesUI(player, true);
+  spawnVoltorbLifeLostFx(player);
+  playVeLifeLost();
   veLog(`⏱️ @${user} se queda sin tiempo`, 'dmg');
   addChatMessage(null, `⏱️ @${user} se ha quedado sin tiempo. Le queda(n) ${Math.max(0, player.lives)} vida(s)`, 'wrong');
   playVeTimeout();
@@ -722,7 +795,9 @@ function resolveVoltorbAnswer(user, answerRaw) {
   // Respuesta incorrecta (no existe en la categoría, o ya fue dicha antes)
   const player = ms.players[user];
   player.lives -= 1;
-  updateVoltorbLivesUI(player);
+  updateVoltorbLivesUI(player, true);
+  spawnVoltorbLifeLostFx(player);
+  playVeLifeLost();
   showVoltorbAnswerBubble(user, answerRaw, 'wrong');
   const reason = alreadyUsed ? `"${matchName}" ya se ha dicho` : `"${answerRaw}" no es válido`;
   veLog(`❌ @${user} falla (${reason})`, 'dmg');

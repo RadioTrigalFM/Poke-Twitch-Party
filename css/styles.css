@@ -3183,8 +3183,8 @@
      desliza hasta ella, dando sensación de cámara que va detrás del cursor
      en vez de clavada a él. */
   .safari-field-outer.aiming .safari-field-inner {
-    transform: scale(var(--safari-zoom-scale, 2.2));
-    transition: transform .15s ease-out, transform-origin .15s ease-out;
+    transform: scale(var(--safari-zoom-scale, 3.3));
+    transition: transform .45s ease-out, transform-origin .225s ease-out;
   }
 
   /* --- Pokémon en el campo --- */
@@ -6006,6 +6006,75 @@
     color: var(--yellow);
   }
 
+  /* ---------- Botón 🔓 de contenido desbloqueable (tarjeta del Boss) ---------- */
+  .mode-unlocks-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    background: var(--dark);
+    border: 2px solid var(--dark-3);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .15s;
+  }
+  .mode-unlocks-btn:hover {
+    border-color: var(--yellow);
+    background: var(--dark-3);
+  }
+  /* Lista del panel (dentro del modal genérico, variante ancha). */
+  .boss-unlocks-summary {
+    color: var(--text);
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  .boss-unlocks-summary b { color: var(--yellow); }
+  .boss-unlocks-list {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0 4px 0 0;
+    max-height: 55vh;
+    overflow-y: auto;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .boss-unlocks-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--dark-3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .boss-unlocks-row.is-unlocked { border: 1px solid var(--yellow); }
+  .boss-unlocks-row.is-locked { opacity: .8; }
+  .boss-unlocks-state { flex-shrink: 0; }
+  .boss-unlocks-name {
+    flex: 1;
+    min-width: 0;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .boss-unlocks-row.is-locked .boss-unlocks-name { color: var(--muted); letter-spacing: 2px; }
+  .boss-unlocks-level {
+    flex-shrink: 0;
+    color: var(--purple);
+    font-weight: 700;
+  }
+
   /* ---------- Modal ---------- */
   .modal-overlay {
     position: fixed;
@@ -8618,6 +8687,125 @@
     80% { transform: translate(3px, -2px); }
   }
 
+  /* --- Pérdida de vida: animación vistosa (ver spawnVoltorbLifeLostFx en
+     voltorbexplosivo.js) --- */
+  .ve-life-fx {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9;
+  }
+  .ve-life-flash {
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(255,40,40,0) 35%, rgba(230,20,30,.55) 100%);
+    box-shadow: inset 0 0 90px 20px rgba(255,0,20,.55);
+    animation: veLifeFlash .75s ease-out forwards;
+  }
+  @keyframes veLifeFlash {
+    0% { opacity: 0; }
+    12% { opacity: 1; }
+    30% { opacity: .35; }
+    45% { opacity: .85; }
+    100% { opacity: 0; }
+  }
+  .ve-life-ring {
+    width: 20px; height: 20px;
+    margin-left: -10px; margin-top: -10px;
+    border-radius: 50%;
+    border: 5px solid #ff2d3d;
+    box-shadow: 0 0 20px 6px rgba(255,45,61,.75), inset 0 0 14px 3px rgba(255,45,61,.5);
+    opacity: 0;
+    animation: veLifeRing .8s ease-out forwards;
+  }
+  @keyframes veLifeRing {
+    0% { transform: scale(0); opacity: 1; }
+    70% { opacity: .7; }
+    100% { transform: scale(8); opacity: 0; }
+  }
+  .ve-life-heart {
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: veLifeHeart 1.5s cubic-bezier(.2,.9,.3,1) forwards;
+  }
+  .ve-life-heart-ico {
+    font-size: 84px;
+    line-height: 1;
+    filter: drop-shadow(0 0 14px rgba(255,30,50,.95)) drop-shadow(0 4px 6px rgba(0,0,0,.6));
+  }
+  .ve-life-heart-txt {
+    margin-top: -2px;
+    font-weight: 900;
+    font-size: 26px;
+    letter-spacing: 1px;
+    color: #fff;
+    text-shadow: 0 0 6px #ff1e32, 0 0 14px #ff1e32, 0 2px 0 #7a0010, 0 3px 6px rgba(0,0,0,.7);
+    white-space: nowrap;
+  }
+  @keyframes veLifeHeart {
+    0% { transform: translate(-50%, -50%) scale(0) rotate(-20deg); opacity: 0; }
+    14% { transform: translate(-50%, -55%) scale(1.5) rotate(8deg); opacity: 1; }
+    24% { transform: translate(-50%, -52%) scale(1.15) rotate(-5deg); }
+    34% { transform: translate(-50%, -54%) scale(1.3) rotate(4deg); }
+    62% { transform: translate(-50%, -58%) scale(1.2) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-50%, -150%) scale(1) rotate(0deg); opacity: 0; }
+  }
+  .ve-life-shard {
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    line-height: 1;
+    filter: drop-shadow(0 0 5px rgba(255,30,50,.9));
+    animation: veLifeShard 1s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes veLifeShard {
+    0% { transform: translate(-50%, -50%) scale(.4) rotate(0deg); opacity: 1; }
+    100% { transform: translate(calc(-50% + var(--ve-dx, 0px)), calc(-50% + var(--ve-dy, 0px))) scale(1.1) rotate(var(--ve-rot, 0deg)); opacity: 0; }
+  }
+  /* El jugador golpeado: sacudida horizontal fuerte + tinte rojo. Se anima
+     el .ve-ow-slot (no el .ve-ow-img) para no pisar el espejado de .flip. */
+  .ve-player.ve-hit { z-index: 8; }
+  .ve-player.ve-hit .ve-ow-slot {
+    animation: veHitShake .8s ease-in-out, veHitTint .8s ease-out;
+  }
+  @keyframes veHitShake {
+    0%, 100% { transform: translateX(0) scale(1); }
+    8% { transform: translateX(-12px) scale(1.18); }
+    20% { transform: translateX(11px) scale(1.12); }
+    32% { transform: translateX(-9px) scale(1.08); }
+    44% { transform: translateX(7px); }
+    56% { transform: translateX(-5px); }
+    70% { transform: translateX(3px); }
+    85% { transform: translateX(-2px); }
+  }
+  @keyframes veHitTint {
+    0%, 55% { filter: brightness(1.6) saturate(2.2) sepia(1) hue-rotate(-35deg); }
+    100% { filter: none; }
+  }
+  /* Marcador de vidas: pulso grande rojo y corazón perdido que se rompe. */
+  .ve-player-lives.ve-lives-hit {
+    animation: veLivesHit 1.4s ease-out;
+    transform-origin: center bottom;
+  }
+  @keyframes veLivesHit {
+    0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,0,0,0)); }
+    10% { transform: scale(2.6); filter: drop-shadow(0 0 8px rgba(255,30,50,1)); }
+    30% { transform: scale(2.1); filter: drop-shadow(0 0 10px rgba(255,30,50,1)); }
+    50% { transform: scale(2.5); filter: drop-shadow(0 0 8px rgba(255,30,50,.9)); }
+    100% { transform: scale(1); filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+  }
+  .ve-heart-lost {
+    display: inline-block;
+    animation: veHeartLost 1.3s ease-out forwards;
+  }
+  @keyframes veHeartLost {
+    0% { transform: scale(1); }
+    12% { transform: scale(2.2) rotate(-14deg); }
+    26% { transform: scale(1.7) rotate(12deg); }
+    40% { transform: scale(2) rotate(-8deg); }
+    75% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(1); opacity: .55; }
+  }
+
   /* --- Cartel de categoría (grande -> se encoge arriba) --- */
   .ve-category-banner-wrap {
     position: absolute;
@@ -8902,6 +9090,32 @@
     color: #7be0ff;
     text-shadow: 3px 3px 0 #0b3d66;
   }
+  /* Opciones del lobby: botón "Regeneración de Plataformas" + barra de
+     segundos (solo visible con el botón activo). */
+  .avl-options {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .avl-regen-toggle { font-size: 13px; padding: 9px 18px; }
+  .avl-regen-toggle::before { content: '☐ '; }
+  .avl-regen-toggle.is-on::before { content: '☑ '; }
+  .avl-regen-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: min(380px, 100%);
+    padding: 12px 16px;
+    background: var(--dark-2);
+    border: 2px solid var(--dark-3);
+    border-radius: 14px;
+  }
+  .avl-regen-wrap[hidden] { display: none; }
+  .avl-regen-label { font-size: 12px; color: var(--muted); text-align: center; }
+  .avl-regen-label b { color: #7be0ff; font-size: 14px; }
+  .avl-regen-wrap input[type=range] { width: 100%; accent-color: #3fa0e6; }
+  .avl-regen-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
   .avl-lobby-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
@@ -9324,6 +9538,15 @@
     50% { filter: drop-shadow(0 0 5px rgba(160,220,255,.85)) drop-shadow(0 2px 2px rgba(0,0,0,.6)) brightness(1.1); }
   }
 
+  /* --- Regeneración de Plataformas: la casilla reaparece con un destello
+     de hielo recién formado (sin fotograma final: vuelve sola a su
+     filtro natural, ver .avl-cell) --- */
+  .avl-cell-regen { animation: avlCellRegen .9s ease-out; }
+  @keyframes avlCellRegen {
+    0% { filter: brightness(2.4) saturate(.5); transform: scale(.8); }
+    45% { filter: brightness(1.7); transform: scale(1.07); }
+  }
+
   /* --- Impacto instantáneo al romperse: fogonazo breve sobre la celda --- */
   .avl-cell-shatter { animation: avlCellImpact .4s ease; }
   @keyframes avlCellImpact {
@@ -9616,3 +9839,502 @@
     max-width: calc(100vw - 32px);
   }
   .afk-lobby-badge-text { white-space: normal; }
+
+  /* =========================================================
+     MODO LA CHARCA (modo secreto, se desbloquea con un código en
+     Ajustes: ver js/codes.js y js/modes/charca.js)
+     ========================================================= */
+
+  /* Tarjeta del menú oculta hasta que se desbloquea con su código. */
+  .mode-card.mode-locked { display: none; }
+
+  /* --- Ajustes: cuadro de Códigos --- */
+  .code-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .code-row input {
+    flex: 1;
+    min-width: 0;
+    background: var(--dark);
+    color: var(--text);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 15px;
+    border: 2px solid var(--dark-3);
+  }
+  .code-row input:focus { border-color: var(--yellow); }
+  .code-feedback {
+    display: none;
+    font-size: 12px;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  .code-feedback.is-visible { display: block; }
+  .code-feedback.is-ok { color: var(--green); }
+  .code-feedback.is-error { color: #ff6b6b; }
+  .code-feedback.is-info { color: var(--muted); }
+
+  /* --- Lobby (mismo esquema que Voltorb Explosivo / El Volcán) --- */
+  .charca-lobby-box {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    flex: 1;
+  }
+  #charca-lobby-scene:fullscreen,
+  #charca-lobby-scene:-webkit-full-screen,
+  #charca-lobby-scene.fs-fallback {
+    justify-content: center;
+    padding: 32px;
+    overflow: auto;
+    box-sizing: border-box;
+  }
+  .charca-lobby-head {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .charca-lobby-icon { font-size: 34px; }
+  .charca-lobby-head .big-count {
+    font-size: 34px;
+    color: var(--yellow);
+    text-shadow: 3px 3px 0 var(--red-dark);
+  }
+  .charca-lobby-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+    background: var(--dark-2);
+    border: 2px solid var(--dark-3);
+    border-radius: 14px;
+    padding: 18px;
+    flex: 1;
+    overflow-y: auto;
+    align-content: flex-start;
+    min-height: 220px;
+  }
+  .charca-lobby-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 30px 10px;
+  }
+  .charca-lobby-card {
+    background: var(--dark-3);
+    border-radius: 12px;
+    padding: 10px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    animation: rlJoin .4s ease;
+    border: 2px solid transparent;
+    position: relative;
+    cursor: pointer;
+  }
+  .charca-lobby-card .p-user { font-size: 10px; color: var(--muted); text-align: center; word-break: break-all; }
+  .charca-lobby-card .pmd-slot.pmd-mini { width: 105px; height: 105px; }
+  .charca-lobby-card .pmd-slot.pmd-mini .pmd-frame { transform: scale(calc(3.2 * var(--pmd-normalize, 1))) translateY(var(--pmd-bottom-offset, 0%)); }
+  .charca-lobby-card .pmd-slot.pmd-mini .pmd-fallback-img { width: 60px; height: 60px; }
+  .charca-start-btn {
+    align-self: center;
+    background: linear-gradient(180deg, #ff4a1e 0%, var(--red) 55%, var(--red-dark) 100%);
+    color: #fff;
+    padding: 16px 40px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 0 5px 0 var(--red-dark), 0 0 24px rgba(227,53,13,.4);
+  }
+  .charca-start-btn:hover:not(:disabled) {
+    box-shadow: 0 5px 0 var(--red-dark), 0 0 32px rgba(227,53,13,.65);
+  }
+  .charca-start-btn:disabled {
+    background: #555;
+    box-shadow: 0 5px 0 #333;
+    cursor: not-allowed;
+    opacity: .55;
+  }
+
+  /* --- Escena de juego ---
+     El escenario (.charca-stage) mantiene siempre proporción 16:9 y publica
+     en --ch-k su escala respecto a 960px de ancho (ver
+     observeCharcaStageScale en charca.js); sprites y textos se
+     dimensionan con ese factor para escalar también en pantalla completa. */
+  .charca-scene {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .charca-scene:fullscreen,
+  .charca-scene:-webkit-full-screen,
+  .charca-scene.fs-fallback {
+    background: #0c2a52;
+  }
+  .charca-stage {
+    --ch-k: 1;
+    position: relative;
+    aspect-ratio: 16 / 9;
+    width: min(100%, calc((100vh - 230px) * 16 / 9));
+    overflow: hidden;
+    border-radius: 22px;
+    border: 5px solid #123a6e;
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.10), 0 0 0 8px #0d2a52, 0 14px 34px rgba(0,0,0,.5);
+    box-sizing: border-box;
+  }
+  .charca-scene:fullscreen .charca-stage,
+  .charca-scene:-webkit-full-screen .charca-stage,
+  .charca-scene.fs-fallback .charca-stage {
+    /* Rellena el 100% de la pantalla (sin franjas laterales/superiores):
+       las posiciones del escenario van en %, así que se adaptan solas a
+       cualquier proporción. */
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+  /* Mapa de La Charca: imagen assets/charca/charca.png a pantalla completa
+     del escenario (cover, centrada). Debajo quedan los degradados azules
+     antiguos como respaldo por si la imagen no está o no carga. */
+  .charca-water {
+    position: absolute;
+    inset: 0;
+    background:
+      url('../assets/charca/charca.png') center / cover no-repeat,
+      radial-gradient(ellipse 55% 35% at 28% 18%, rgba(255,255,255,.16), transparent 70%),
+      radial-gradient(ellipse 45% 30% at 78% 70%, rgba(255,255,255,.08), transparent 70%),
+      linear-gradient(180deg, #3b9af0 0%, #1f72d6 50%, #1252ad 100%);
+    image-rendering: auto;
+  }
+  /* Sprites PMD: el punto (left, top) es donde apoyan los pies. */
+  .charca-actor {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .charca-actor .pmd-slot.pmd-mini {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 calc(4px * var(--ch-k)) calc(6px * var(--ch-k)) rgba(0,0,0,.35));
+  }
+  .charca-lotad { width: 0; height: 0; }
+  .charca-lotad .pmd-slot.pmd-mini { width: calc(96px * var(--ch-k)); height: calc(96px * var(--ch-k)); }
+  .charca-lotad .pmd-slot.pmd-mini .pmd-frame {
+    transform: scale(calc(2.9 * var(--ch-k) * var(--pmd-normalize, 1))) translateY(var(--pmd-bottom-offset, 0%));
+  }
+  .charca-lotad .pmd-slot.pmd-mini .pmd-fallback-img { width: calc(60px * var(--ch-k)); height: calc(60px * var(--ch-k)); }
+  .charca-ludicolo { width: 0; height: 0; z-index: 20; }
+  .charca-ludicolo .pmd-slot.pmd-mini { width: calc(450px * var(--ch-k)); height: calc(450px * var(--ch-k)); }
+  .charca-ludicolo .pmd-slot.pmd-mini .pmd-frame {
+    transform: scale(calc(10.8 * var(--ch-k) * var(--pmd-normalize, 1))) translateY(var(--pmd-bottom-offset, 0%));
+  }
+  .charca-ludicolo .pmd-slot.pmd-mini .pmd-fallback-img { width: calc(300px * var(--ch-k)); height: calc(300px * var(--ch-k)); }
+  /* Nombre del jugador bajo su plataforma. */
+  .charca-label {
+    position: absolute;
+    transform: translateX(-50%);
+    margin-top: calc(30px * var(--ch-k));
+    max-width: 17%;
+    padding: calc(1px * var(--ch-k)) calc(7px * var(--ch-k));
+    border-radius: 999px;
+    background: rgba(0,20,60,.55);
+    color: #fff;
+    font-size: calc(11px * var(--ch-k));
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+  }
+
+  /* --- Juego: HUD, panel del streamer, carteles y eliminaciones ---
+     Todo cuelga de .charca-stage y escala con --ch-k, igual que los
+     sprites, para verse proporcionado en ventana y en pantalla completa. */
+
+  /* Contador "n/N" de pasos recibidos (solo durante el turno de los jugadores). */
+  .charca-count {
+    position: absolute;
+    transform: translateX(-50%);
+    margin-top: calc(48px * var(--ch-k));
+    padding: 0 calc(7px * var(--ch-k));
+    border-radius: 999px;
+    background: rgba(0,20,60,.55);
+    color: #cfe6ff;
+    font-size: calc(10px * var(--ch-k));
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+    pointer-events: none;
+    display: none;
+  }
+  .charca-stage.is-answering .charca-count { display: block; }
+  .charca-count.is-full { background: #2c8e3c; color: #fff; }
+  .charca-count.is-over { background: #b3261e; color: #fff; }
+
+  /* Jugador eliminado: su Lotad y su nombre se desvanecen. */
+  .charca-actor.is-eliminated,
+  .charca-label.is-eliminated,
+  .charca-count.is-eliminated {
+    opacity: 0;
+    transition: opacity .7s ease;
+  }
+
+  /* Barra de estado (arriba a la izquierda, a la derecha del botón ⛶). */
+  .charca-hud {
+    position: absolute;
+    top: calc(10px * var(--ch-k));
+    left: 64px;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: calc(5px * var(--ch-k));
+    max-width: 27%;
+    pointer-events: none;
+  }
+  .charca-hud__chip {
+    padding: calc(2px * var(--ch-k)) calc(10px * var(--ch-k));
+    border-radius: 999px;
+    background: rgba(0,20,60,.62);
+    color: #fff;
+    font-size: calc(12px * var(--ch-k));
+    font-weight: 700;
+    line-height: 1.6;
+  }
+  .charca-hud__round { background: #e3350d; box-shadow: 0 calc(2px * var(--ch-k)) 0 #8f1f06; }
+  .charca-hud__phase { color: #ffe27a; }
+  .charca-hud__timer { font-size: calc(18px * var(--ch-k)); color: #7be0ff; }
+  .charca-hud__timer.is-low { color: #ff6b6b; }
+  .charca-hud__cmds { font-size: calc(11px * var(--ch-k)); color: #cfe6ff; white-space: normal; }
+
+  /* Panel de selección de pasos del streamer (arriba a la derecha). */
+  .charca-picker {
+    position: absolute;
+    top: calc(10px * var(--ch-k));
+    right: calc(12px * var(--ch-k));
+    width: calc(190px * var(--ch-k));
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    gap: calc(8px * var(--ch-k));
+    padding: calc(10px * var(--ch-k));
+    border-radius: calc(12px * var(--ch-k));
+    background: rgba(6,20,50,.86);
+    border: calc(2px * var(--ch-k)) solid rgba(255,255,255,.22);
+    box-shadow: 0 calc(6px * var(--ch-k)) calc(18px * var(--ch-k)) rgba(0,0,0,.45);
+    box-sizing: border-box;
+    color: #fff;
+  }
+  .charca-picker__title { font-size: calc(12px * var(--ch-k)); font-weight: 700; text-align: center; }
+  .charca-picker__title b { color: #ffe27a; }
+  .charca-picker__slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: calc(4px * var(--ch-k));
+    justify-content: center;
+  }
+  .charca-slot {
+    width: calc(26px * var(--ch-k));
+    height: calc(26px * var(--ch-k));
+    border-radius: calc(7px * var(--ch-k));
+    border: calc(2px * var(--ch-k)) dashed rgba(255,255,255,.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(14px * var(--ch-k));
+    box-sizing: border-box;
+  }
+  .charca-slot.is-filled { border-style: solid; border-color: rgba(255,255,255,.85); background: var(--st, #46b552); }
+  .charca-picker__btns { display: flex; flex-direction: column; gap: calc(5px * var(--ch-k)); }
+  .charca-picker__btn {
+    display: flex;
+    align-items: center;
+    gap: calc(8px * var(--ch-k));
+    padding: calc(6px * var(--ch-k)) calc(10px * var(--ch-k));
+    border-radius: calc(9px * var(--ch-k));
+    background: linear-gradient(180deg, var(--st, #5fc86a) 0%, var(--st-dark, #2c8e3c) 100%);
+    box-shadow: 0 calc(3px * var(--ch-k)) 0 rgba(0,0,0,.4);
+    color: #fff;
+    font-size: calc(13px * var(--ch-k));
+    font-weight: 700;
+    text-align: left;
+  }
+  .charca-picker__btn:hover { filter: brightness(1.15); }
+  .charca-picker__icon { font-size: calc(16px * var(--ch-k)); }
+
+  /* Notificación del paso que baila Ludicolo (a su derecha). El color sale de
+     --st / --st-dark, puestos en línea desde charca.js con el color del paso. */
+  .charca-step-note {
+    position: absolute;
+    left: 63%;
+    top: 36%;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: calc(10px * var(--ch-k));
+    padding: calc(10px * var(--ch-k)) calc(22px * var(--ch-k)) calc(10px * var(--ch-k)) calc(14px * var(--ch-k));
+    border-radius: calc(16px * var(--ch-k));
+    background: linear-gradient(180deg, var(--st) 0%, var(--st-dark) 100%);
+    border: calc(3px * var(--ch-k)) solid rgba(255,255,255,.9);
+    box-shadow: 0 calc(5px * var(--ch-k)) 0 rgba(0,0,0,.35), 0 0 calc(26px * var(--ch-k)) var(--st);
+    pointer-events: none;
+    transform-origin: left center;
+    animation: charcaStepNoteIn 420ms cubic-bezier(.2,.9,.3,1.3) both,
+               charcaStepNoteGlow 700ms ease-in-out 420ms infinite alternate;
+  }
+  .charca-step-note.is-out { animation: charcaStepNoteOut 250ms ease-in both; }
+  .charca-step-note__icon {
+    font-size: calc(38px * var(--ch-k));
+    line-height: 1;
+    display: inline-block;
+    animation: charcaStepNoteIcon 600ms ease-in-out 300ms infinite;
+  }
+  .charca-step-note__text {
+    font-size: calc(28px * var(--ch-k));
+    color: #fff;
+    text-shadow: calc(3px * var(--ch-k)) calc(3px * var(--ch-k)) 0 rgba(0,0,0,.4);
+  }
+  /* Onda que sale del cartel al aparecer. */
+  .charca-step-note__ring {
+    position: absolute;
+    inset: calc(-3px * var(--ch-k));
+    border-radius: inherit;
+    border: calc(3px * var(--ch-k)) solid var(--st);
+    opacity: 0;
+    animation: charcaStepNoteRing 650ms ease-out both;
+  }
+  @keyframes charcaStepNoteIn {
+    0%   { opacity: 0; transform: translateX(calc(-40px * var(--ch-k))) scale(.2) rotate(-14deg); }
+    60%  { opacity: 1; transform: translateX(calc(6px * var(--ch-k))) scale(1.18) rotate(4deg); }
+    100% { opacity: 1; transform: translateX(0) scale(1) rotate(0); }
+  }
+  @keyframes charcaStepNoteOut {
+    0%   { opacity: 1; transform: translateX(0) scale(1); }
+    100% { opacity: 0; transform: translateX(calc(30px * var(--ch-k))) scale(.6); }
+  }
+  @keyframes charcaStepNoteGlow {
+    from { filter: brightness(1); }
+    to   { filter: brightness(1.22); }
+  }
+  @keyframes charcaStepNoteIcon {
+    0%, 100% { transform: rotate(-12deg) scale(1); }
+    50%      { transform: rotate(12deg) scale(1.2); }
+  }
+  @keyframes charcaStepNoteRing {
+    0%   { opacity: .9; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.5, 1.9); }
+  }
+
+  /* Carteles (Ronda N / Turno de Lotad / A Bailar): una cinta que cruza el
+     escenario. TODOS usan las mismas animaciones de entrada (.is-in) y de
+     salida (.is-out); sus duraciones deben casar con CHARCA_BANNER_IN_MS y
+     CHARCA_BANNER_OUT_MS de charca.js. */
+  .charca-banner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(6px * var(--ch-k));
+    padding: calc(22px * var(--ch-k)) 0;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-50%) translateX(-105%);
+    border-top: calc(4px * var(--ch-k)) solid rgba(255,255,255,.85);
+    border-bottom: calc(4px * var(--ch-k)) solid rgba(255,255,255,.85);
+    box-shadow: 0 calc(8px * var(--ch-k)) calc(24px * var(--ch-k)) rgba(0,0,0,.45);
+  }
+  .charca-banner.is-in  { animation: charcaBannerIn 500ms cubic-bezier(.2,.9,.3,1.15) both; }
+  .charca-banner.is-out { animation: charcaBannerOut 400ms ease-in both; }
+  .charca-banner__text {
+    font-size: calc(34px * var(--ch-k));
+    color: #fff;
+    text-shadow: calc(3px * var(--ch-k)) calc(3px * var(--ch-k)) 0 rgba(0,0,0,.4);
+  }
+  .charca-banner__sub {
+    font-size: calc(15px * var(--ch-k));
+    font-weight: 700;
+    color: #fff;
+    opacity: .92;
+  }
+  .charca-banner--turn  { background: linear-gradient(180deg, #46b552, #1f7a30); }
+  .charca-banner--dance { background: linear-gradient(180deg, #ff8a3d, #d6410f); }
+  .charca-banner--round { background: linear-gradient(180deg, #3b7fe0, #1a4aa3); }
+  .charca-banner--attention { background: linear-gradient(180deg, #a35be0, #5e24a8); }
+  @keyframes charcaBannerIn {
+    0%   { opacity: 0; transform: translateY(-50%) translateX(-105%) skewX(-14deg); }
+    70%  { opacity: 1; transform: translateY(-50%) translateX(3%) skewX(3deg); }
+    100% { opacity: 1; transform: translateY(-50%) translateX(0) skewX(0); }
+  }
+  @keyframes charcaBannerOut {
+    0%   { opacity: 1; transform: translateY(-50%) translateX(0) skewX(0); }
+    100% { opacity: 0; transform: translateY(-50%) translateX(105%) skewX(14deg); }
+  }
+
+  /* Cartel de fin de partida: misma animación de entrada, pero se queda. */
+  .charca-end {
+    position: absolute;
+    inset: 0;
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: calc(14px * var(--ch-k));
+    background: rgba(6,14,26,.8);
+    text-align: center;
+    padding: calc(20px * var(--ch-k));
+    animation: charcaEndIn 500ms ease both;
+  }
+  .charca-end__title {
+    font-size: calc(30px * var(--ch-k));
+    color: #ffe27a;
+    text-shadow: calc(3px * var(--ch-k)) calc(3px * var(--ch-k)) 0 var(--red-dark);
+  }
+  .charca-end__line { font-size: calc(20px * var(--ch-k)); font-weight: 700; color: #fff; }
+  .charca-end__sub { font-size: calc(14px * var(--ch-k)); color: var(--text); }
+  @keyframes charcaEndIn {
+    0%   { opacity: 0; transform: scale(.92); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* Burbuja provisional con el paso que ejecuta un actor (sustituir por las
+     animaciones de los sprites; ver performCharcaStep en charca.js). */
+  .charca-step-bubble {
+    position: absolute;
+    left: 50%;
+    bottom: calc(70px * var(--ch-k));
+    transform: translateX(-50%);
+    padding: calc(2px * var(--ch-k)) calc(9px * var(--ch-k));
+    border-radius: 999px;
+    background: #fff;
+    color: #123a6e;
+    font-size: calc(11px * var(--ch-k));
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 calc(3px * var(--ch-k)) calc(8px * var(--ch-k)) rgba(0,0,0,.4);
+    z-index: 5;
+  }
+  .charca-ludicolo .charca-step-bubble {
+    left: calc(165px * var(--ch-k));
+    bottom: calc(150px * var(--ch-k));
+    transform: none;
+    font-size: calc(16px * var(--ch-k));
+    padding: calc(4px * var(--ch-k)) calc(14px * var(--ch-k));
+  }

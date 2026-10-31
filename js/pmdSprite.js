@@ -2,6 +2,7 @@ import { PMD_LOCAL_ANIM_DB } from './data/pmdLocalAnimDb.js';
 import { PMD_SLEEP_ANIM_DB } from './data/pmdSleepAnimDb.js';
 import { PMD_SHOOT_ANIM_DB } from './data/pmdShootAnimDb.js';
 import { PMD_CHARGE_ANIM_DB } from './data/pmdChargeAnimDb.js';
+import { PMD_CHARCA_ANIM_DB } from './data/pmdCharcaAnimDb.js';
 import { PMD_SHINY_ANIM_DB } from './data/pmdShinyAnimDb.js';
 import { isFlyingPokemon } from './data/pokemonFlightDb.js';
 
@@ -37,11 +38,13 @@ const PMD_SPRITE_BASE = 'https://raw.githubusercontent.com/PMDCollab/SpriteColla
 // (PMD_SLEEP_ANIM_DB, ver js/data/pmdSleepAnimDb.js), "Shoot" para
 // Heatran (modo Volcán) y Venusaur (modo Rayo Solar) (PMD_SHOOT_ANIM_DB,
 // ver js/data/pmdShootAnimDb.js) y "Charge" para Venusaur en el modo
-// Rayo Solar (PMD_CHARGE_ANIM_DB, ver js/data/pmdChargeAnimDb.js). Se
+// Rayo Solar (PMD_CHARGE_ANIM_DB, ver js/data/pmdChargeAnimDb.js) y las
+// de baile de Lotad/Ludicolo (Swing/Rotate/Hop/Shake/Emit) para La Charca
+// (PMD_CHARCA_ANIM_DB, ver js/data/pmdCharcaAnimDb.js). Se
 // fusionan aquí en un solo objeto por dex para que la búsqueda de más
 // abajo las trate igual que las tres de siempre.
 const PMD_LOCAL_ANIM_DATA = {};
-for (const src of [PMD_LOCAL_ANIM_DB, PMD_SLEEP_ANIM_DB, PMD_SHOOT_ANIM_DB, PMD_CHARGE_ANIM_DB]) {
+for (const src of [PMD_LOCAL_ANIM_DB, PMD_SLEEP_ANIM_DB, PMD_SHOOT_ANIM_DB, PMD_CHARGE_ANIM_DB, PMD_CHARCA_ANIM_DB]) {
   for (const dex in src) {
     PMD_LOCAL_ANIM_DATA[dex] = Object.assign(PMD_LOCAL_ANIM_DATA[dex] || {}, src[dex]);
   }
@@ -325,9 +328,10 @@ async function pmdLoadAnim(dexId, animName, shiny = false) {
   return promise;
 }
 
-// Precarga las 3 animaciones que usa el modo Arena para un Pokémon
-export function pmdPreload(dexId) {
-  ['Walk', 'Attack', 'Hurt'].forEach(a => pmdLoadAnim(dexId, a).catch(() => {}));
+// Precarga las 3 animaciones que usa el modo Arena para un Pokémon (o, si se
+// pasa `anims`, la lista de animaciones indicada: p.ej. las de baile de La Charca)
+export function pmdPreload(dexId, anims = ['Walk', 'Attack', 'Hurt']) {
+  anims.forEach(a => pmdLoadAnim(dexId, a).catch(() => {}));
 }
 
 // Controlador de un sprite animado PMD dentro de un contenedor del DOM.

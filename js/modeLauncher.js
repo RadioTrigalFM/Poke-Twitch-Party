@@ -6,6 +6,7 @@ import { startArena } from './modes/arena.js';
 import { startAvalugg } from './modes/avalugg.js';
 import { startExtranjeria } from './modes/extranjeria.js';
 import { startBoss } from './modes/boss.js';
+import { startCharca } from './modes/charca.js';
 import { startPasapalabra } from './modes/pasapalabra.js';
 import { startPokerus } from './modes/pokerus.js';
 import { startRayoSolar } from './modes/rayosolar.js';
@@ -52,7 +53,7 @@ const MODE_MUSIC_KEY = {
 // ya gestiona esto él mismo (updateBossMusic solo se llama al cerrarse el
 // lobby, nunca durante la inscripción).
 const MODES_WITHOUT_LOBBY_MUSIC = new Set([
-  'rayosolar', 'zoroarks', 'safari', 'boss', 'pokerus', 'volcan', 'vistalince', 'voltorb', 'avalugg',
+  'rayosolar', 'zoroarks', 'safari', 'boss', 'pokerus', 'volcan', 'vistalince', 'voltorb', 'avalugg', 'charca',
 ]);
 
 // Título (con icono) de cada modo de juego.
@@ -69,6 +70,7 @@ export const MODE_TITLES = {
   extranjeria: '🛂 Control de Extranjería',
   voltorb: '💣 Voltorb Explosivo',
   avalugg: '❄️ Glaciar de Avalugg',
+  charca: '🐸 La Charca',
 };
 
 export function launchMode(mode) {
@@ -91,6 +93,7 @@ export function launchMode(mode) {
     case 'extranjeria': startExtranjeria(); break;
     case 'voltorb': startVoltorbExplosivo(); break;
     case 'avalugg': startAvalugg(); break;
+    case 'charca': startCharca(); break;
   }
   // El modo Boss no tiene una única pista fija: depende del nivel/fase con
   // que arranque (ver updateBossMusic en modes/boss.js, llamada desde el

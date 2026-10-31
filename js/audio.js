@@ -16,8 +16,8 @@ const SFX_VOLUME_STORAGE_KEY = 'pokekukoro_sfx_volume';
 // Ajustes, o si localStorage no está disponible/vacío): la música arranca
 // más baja que los efectos, para que no tape los pitidos y avisos propios
 // del juego (cuenta atrás, aciertos/fallos...).
-const DEFAULT_MUSIC_VOLUME_SCALE = 0.2;
-const DEFAULT_SFX_VOLUME_SCALE = 0.7;
+const DEFAULT_MUSIC_VOLUME_SCALE = 0.1;
+const DEFAULT_SFX_VOLUME_SCALE = 0.4;
 
 let musicVolumeScale = DEFAULT_MUSIC_VOLUME_SCALE;
 let sfxVolumeScale = DEFAULT_SFX_VOLUME_SCALE;
@@ -69,6 +69,21 @@ export function playSfxPreview() {
 export function playModeSelectClick() {
   beep({ freq: 520, duration: 0.05, volume: 0.16, type: 'triangle' });
   beep({ freq: 780, duration: 0.07, volume: 0.18, type: 'triangle', delay: 0.045 });
+}
+
+// El ratón pasa por encima de la tarjeta de un modo de juego en el menú
+// principal y esta se resalta (ver .mode-card:hover en styles.css y
+// eventListeners.js): campanilla muy suave, dos notas sinusoidales
+// ascendentes con un tenue armónico grave, volumen bajo para que resulte
+// agradable aunque se pase por varias tarjetas seguidas.
+let lastModeHoverAt = 0;
+export function playModeHover() {
+  const now = performance.now();
+  if (now - lastModeHoverAt < 90) return; // evita solapes si el ratón cruza varias tarjetas muy rápido
+  lastModeHoverAt = now;
+  beep({ freq: 523, duration: 0.3, volume: 0.035, type: 'sine' });
+  beep({ freq: 1047, duration: 0.26, volume: 0.07, type: 'sine' });
+  beep({ freq: 1568, duration: 0.3, volume: 0.05, type: 'sine', delay: 0.055 });
 }
 
 let audioCtx = null;
@@ -214,6 +229,16 @@ export function playVeCorrect() {
 // Respuesta incorrecta: zumbido descendente corto tipo "error".
 export function playVeWrong() {
   beep({ freq: 300, duration: 0.16, volume: 0.16, type: 'sawtooth', freqEnd: 150 });
+}
+
+// Un jugador pierde una vida (por fallo o por tiempo): latido grave doble
+// + estridencia descendente + crujido, para que la pérdida se note aunque
+// suene a la vez que el sonido de fallo.
+export function playVeLifeLost() {
+  beep({ freq: 150, duration: 0.2, volume: 0.32, type: 'sine', freqEnd: 50 });
+  beep({ freq: 120, duration: 0.24, volume: 0.3, type: 'sine', freqEnd: 40, delay: 0.17 });
+  beep({ freq: 900, duration: 0.42, volume: 0.13, type: 'sawtooth', freqEnd: 180, delay: 0.03 });
+  noiseBurst({ duration: 0.22, volume: 0.2, filterFreq: 2200, filterType: 'highpass' });
 }
 
 // Se agota el tiempo del turno: doble aviso de alarma, distinto del fallo
@@ -414,26 +439,13 @@ export function playAvaluggFall() {
    EFECTOS ESPECÍFICOS DE ZONA SAFARI
    ========================================================= */
 
-// El streamer suelta el gatillo (acierte o falle): "pum" seco y corto,
-// combinando un golpe grave breve con una ráfaga de ruido filtrado, para
-// simular un disparo sin depender de ningún archivo de audio.
+// El streamer suelta el gatillo (acierte o falle): disparo de francotirador
+// con eco (pista real en assets/sfx/).
 export function playSafariShot() {
-  const ctx = getAudioCtx();
-  if (ctx) {
-    const t0 = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(220, t0);
-    osc.frequency.exponentialRampToValueAtTime(60, t0 + 0.09);
-    gain.gain.setValueAtTime(0.26, t0);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.1);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + 0.12);
-  }
-  noiseBurst({ duration: 0.09, volume: 0.24, filterFreq: 2500, filterType: 'highpass' });
+  // Disparo de francotirador real con eco de valle (assets/sfx/sniper-shot.mp3):
+  // chasquido supersónico + estampido grave + rebotes que se van apagando.
+  // Se lanza una instancia nueva de Audio por disparo (ver playSfxFile).
+  return playSfxFile('assets/sfx/sniper-shot.mp3');
 }
 
 // Un Pokémon toca la línea de meta y ya ha ganado: jingle de campanilla
@@ -1173,6 +1185,7 @@ const MODE_MUSIC_SRC = {
   'arena': 'assets/music/arena.mp3',
   'rayosolar': 'assets/music/rayo-solar.mp3',
   'pasapalabra': 'assets/music/pasapalabra.mp3',
+  'charca': 'assets/music/charca.mp3',
 };
 // Pistas del menú principal (pantalla de selección de modo, ver
 // MODE_TITLES/showScreen('menu-screen') en modeLauncher.js/

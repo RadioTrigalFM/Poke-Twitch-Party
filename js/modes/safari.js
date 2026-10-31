@@ -57,7 +57,7 @@ const SAFARI_TOP_SIGN_CLEARANCE_PCT = 19; // margen superior para dejar sitio al
 const SAFARI_FINISH_X_PCT = 90;        // posición interna de la línea de meta (no se muestra)
 const SAFARI_EXIT_X_PCT = 108;         // hasta dónde sigue caminando solo tras tocar la meta, para salir del todo del encuadre (si le da tiempo dentro de SAFARI_FINISH_WALK_MS)
 const SAFARI_FINISH_WALK_MS = 2000;    // cuánto tiempo sigue caminando solo hacia la derecha tras tocar la meta, antes de detenerse del todo
-const SAFARI_ZOOM_SCALE = 2.2;         // zoom de la mirilla al apuntar (fuente real: setupSafariShooting fija --safari-zoom-scale con este valor; debe casar con el fallback de .safari-field-outer.aiming .safari-field-inner en styles.css)
+const SAFARI_ZOOM_SCALE = 3.3;         // zoom de la mirilla al apuntar (fuente real: setupSafariShooting fija --safari-zoom-scale con este valor; debe casar con el fallback de .safari-field-outer.aiming .safari-field-inner en styles.css)
 const SAFARI_DEATH_FADE_MS = 600;      // duración del desvanecido/caída tras el Hurt (debe casar con @keyframes safariFaint)
 const SAFARI_GOAL_CONFETTI_MS = 5000;          // duración total de las partículas de confeti al tocar la meta
 const SAFARI_GOAL_CONFETTI_INTERVAL_MS = 110;  // cada cuánto se lanza un puñado nuevo de partículas
@@ -69,7 +69,7 @@ const SAFARI_EYES_BLACK_MS = 5000;     // tiempo con la pantalla en negro antes 
 const SAFARI_EYES_RING_R = 44;         // radio del círculo SVG del marcador de tiempo
 const SAFARI_EYES_RING_CIRC = 2 * Math.PI * SAFARI_EYES_RING_R;
 
-const SAFARI_TIMER_START_S = 100;      // segundos del temporizador de la partida (solo baja con los ojos cerrados)
+const SAFARI_TIMER_START_S = 75;       // segundos del temporizador de la partida (solo baja con los ojos cerrados)
 
 export function startSafari() {
   // Igual que en Rayo Solar (ver el comentario largo en startRayoSolar,

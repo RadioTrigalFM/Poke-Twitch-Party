@@ -32,6 +32,7 @@ export const JOIN_COMMANDS_BY_MODE = {
   vistalince: ['!participo'],
   voltorb: ['!participo'],
   zoroarks: ['!participo'],
+  charca: ['!participo'],
 };
 
 export function loadSubsModePref() {

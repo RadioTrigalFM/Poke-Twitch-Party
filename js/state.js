@@ -14,5 +14,6 @@ export const state = {
   modeState: null,
   subsMode: false,     // Modo Subs: si está activo, solo pueden inscribirse/participar suscriptores del canal
   subscribers: new Set(), // logins (en minúsculas) que las tags de Twitch han marcado como suscriptores/fundadores en algún mensaje reciente
+  unlockedModes: new Set(), // modos secretos desbloqueados con códigos desde Ajustes (ver codes.js), p.ej. 'charca'
   unlockedBossSprites: new Set(), // nombres (en minúsculas) de sprites especiales del Boss (Wishiwashi Banco, Aegislash Espada...) ya desbloqueados para !pokemon (ver bossSpriteLocks.js)
 };

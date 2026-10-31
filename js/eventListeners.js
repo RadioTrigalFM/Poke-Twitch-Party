@@ -3,13 +3,14 @@ import { currentFullscreenElement, exitFallbackFullscreen, getSceneFallbackEleme
 import { backToMenu, launchMode } from './modeLauncher.js';
 import { closeLobbyExpelPopover } from './lobbyExpel.js';
 import { closeExpelPopover } from './modes/arena.js';
-import { getMusicVolume, getSfxVolume, loadVolumePrefs, playModeMusic, playModeSelectClick, playSfxPreview, setMusicVolume, setSfxVolume, stopModeMusic } from './audio.js';
+import { getMusicVolume, getSfxVolume, loadVolumePrefs, playModeMusic, playModeHover, playModeSelectClick, playSfxPreview, setMusicVolume, setSfxVolume, stopModeMusic } from './audio.js';
 import { state } from './state.js';
 import { loadSubsModePref, setSubsMode } from './subsMode.js';
-import { loadBossSpriteUnlocksPref } from './bossSpriteLocks.js';
+import { loadBossSpriteUnlocksPref, openBossUnlocksModal } from './bossSpriteLocks.js';
 import { initPokemonCommandsScreen } from './pokemonCommands.js';
 import { initHowToPlayScreen } from './howToPlay.js';
 import { initOAuthInfo } from './oauthInfo.js';
+import { initCodes } from './codes.js';
 import { $, relocateModal, showModal, showScreen } from './utils.js';
 
 /* =========================================================
@@ -70,11 +71,28 @@ $('back-btn').onclick = () => {
 };
 
 document.querySelectorAll('.mode-card').forEach(card => {
+  // Sonido suave al resaltarse la tarjeta con el ratón (no con el dedo: en
+  // pantallas táctiles el "hover" se dispara al tocar y sonaría dos veces).
+  card.addEventListener('pointerenter', (e) => {
+    if (e.pointerType && e.pointerType !== 'mouse') return;
+    playModeHover();
+  });
   card.onclick = () => {
     playModeSelectClick();
     launchMode(card.dataset.mode);
   };
 });
+
+// Botón 🔓 de la tarjeta del Boss Cooperativo: abre la lista de contenido
+// desbloqueable. stopPropagation para que el clic no llegue a la tarjeta (que
+// lanzaría el modo).
+const bossUnlocksBtn = $('boss-unlocks-btn');
+if (bossUnlocksBtn) {
+  bossUnlocksBtn.onclick = (e) => {
+    e.stopPropagation();
+    openBossUnlocksModal();
+  };
+}
 
 // Modo Subs: disponible desde la pantalla de selección de modo (nunca
 // dentro de la pantalla de juego), así que aplica a cualquier modo que se
@@ -119,6 +137,9 @@ if ($('settings-back-btn')) {
 initPokemonCommandsScreen();
 initHowToPlayScreen();
 initOAuthInfo();
+
+// Códigos de Ajustes (ver codes.js): desbloquean modos secretos en el menú.
+initCodes();
 
 function syncVolumeUi() {
   const musicSlider = $('music-volume-slider');

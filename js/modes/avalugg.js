@@ -54,6 +54,12 @@ import { registerModeCleanup } from '../modeCleanup.js';
      jugador es reubicado en una fila aleatoria de la segunda columna.
    - Gana el primer jugador que toque cualquiera de las 3 filas
      centrales de la última columna (el trofeo). Termina la partida.
+   - Opción del lobby "Regeneración de Plataformas" (desmarcada por
+     defecto): al activarla aparece una barra (10-30 s) y cada casilla que
+     se rompe vuelve a aparecer como hielo normal pasado ese tiempo desde
+     que se rompió. Solo cambia lo que se ve: el camino seguro no cambia,
+     así que una casilla regenerada que no era segura se rompe de nuevo
+     si alguien la pisa.
    ========================================================= */
 
 const AVL_ROWS = 14;
@@ -62,6 +68,10 @@ const AVL_START_COL = 1;       // segunda columna (0-indexado): donde reaparecen
 const AVL_BREAK_MIN_COL = 2;   // tercera columna: a partir de aquí todo es hielo quebradizo
 const AVL_LAST_COL = AVL_COLS - 1; // última (vigésima) columna: ahí está el trofeo
 const AVL_CENTER_ROWS = [5, 6, 7]; // 3 filas centrales de la última columna (de 14 filas: 0-13)
+const AVL_REGEN_MIN_S = 10;     // Regeneración de Plataformas: mínimo de segundos que tarda en reaparecer una casilla caída
+const AVL_REGEN_MAX_S = 30;     // ... y máximo
+const AVL_REGEN_DEFAULT_S = 20; // valor inicial de la barra al activar la opción
+const AVL_REGEN_ANIM_MS = 900;  // debe casar con la animación CSS "avlCellRegen"
 const AVL_FALL_ANIM_MS = 420;  // debe casar con la animación CSS "avlFall"
 const AVL_ENTRANCE_MS = 20;    // pequeño respiro antes de animar la entrada (para que el navegador pinte el estado "fuera de pantalla")
 const AVL_ENTRANCE_WALK_MS = 1400; // duración de la entrada caminando desde fuera de pantalla (debe casar con la transición inline que se aplica en ese momento)
@@ -449,6 +459,9 @@ export function startAvalugg() {
     cellEls: null,          // array plano (row*AVL_COLS+col) con las celdas del DOM, para acceso O(1)
     safePath: null,          // Set "row,col" de casillas que nunca se rompen (solo válido en 'playing')
     brokenCells: new Set(),  // Set "row,col" de casillas ya rotas (solo visual/registro)
+    regenEnabled: false,     // opción "Regeneración de Plataformas" del lobby (desmarcada por defecto)
+    regenSeconds: AVL_REGEN_DEFAULT_S, // segundos hasta que reaparece una casilla rota (AVL_REGEN_MIN_S..AVL_REGEN_MAX_S)
+    regenTimeouts: [],       // temporizadores de regeneración pendientes (los cancela el barrido automático al salir del modo)
     winner: null,
     fallTimeouts: [],
     entranceTimeouts: [],
@@ -541,11 +554,48 @@ function renderAvaluggLobby() {
       <div class="avl-lobby-grid" id="avl-lobby-grid">
         <div class="avl-lobby-empty">Esperando a que el chat se apunte...</div>
       </div>
+      <div class="avl-options">
+        <button class="auto-advance-toggle avl-regen-toggle" id="avl-regen-toggle" type="button" aria-pressed="false">🧊 Regeneración de Plataformas</button>
+        <div class="avl-regen-wrap" id="avl-regen-wrap" hidden>
+          <label class="avl-regen-label" for="avl-regen-slider">Las plataformas caídas reaparecen a los <b id="avl-regen-value">${AVL_REGEN_DEFAULT_S}</b> segundos</label>
+          <input type="range" id="avl-regen-slider" min="${AVL_REGEN_MIN_S}" max="${AVL_REGEN_MAX_S}" step="1" value="${AVL_REGEN_DEFAULT_S}">
+          <div class="avl-regen-scale"><span>${AVL_REGEN_MIN_S} s</span><span>${AVL_REGEN_MAX_S} s</span></div>
+        </div>
+      </div>
       <button class="avl-start-btn" id="avl-start-btn" disabled>▶ Comenzar Partida</button>
     </div>
   `;
   $('avl-start-btn').onclick = () => startAvaluggMatch();
+  setupAvaluggRegenOptions();
   renderAvaluggLobbyGrid();
+}
+
+// Conecta el botón "Regeneración de Plataformas" y su barra de segundos.
+// La barra queda oculta mientras el botón está desmarcado.
+function setupAvaluggRegenOptions() {
+  const ms = state.modeState;
+  const btn = $('avl-regen-toggle');
+  const wrap = $('avl-regen-wrap');
+  const slider = $('avl-regen-slider');
+  const valueEl = $('avl-regen-value');
+  if (!ms || !btn || !wrap || !slider) return;
+  const sync = () => {
+    btn.classList.toggle('is-on', ms.regenEnabled);
+    btn.setAttribute('aria-pressed', ms.regenEnabled ? 'true' : 'false');
+    wrap.hidden = !ms.regenEnabled;
+    slider.value = String(ms.regenSeconds);
+    if (valueEl) valueEl.textContent = String(ms.regenSeconds);
+  };
+  btn.onclick = () => {
+    ms.regenEnabled = !ms.regenEnabled;
+    sync();
+  };
+  slider.oninput = () => {
+    const v = Math.round(Number(slider.value));
+    ms.regenSeconds = Math.min(AVL_REGEN_MAX_S, Math.max(AVL_REGEN_MIN_S, Number.isFinite(v) ? v : AVL_REGEN_DEFAULT_S));
+    if (valueEl) valueEl.textContent = String(ms.regenSeconds);
+  };
+  sync();
 }
 
 function renderAvaluggLobbyGrid() {
@@ -680,7 +730,8 @@ function startAvaluggMatch() {
   ms.entranceTimeouts.push(entranceId);
 
   avlLog('❄️ ¡Todos entran caminando al glaciar!', '');
-  addChatMessage(null, `❄️ ¡Comienza Glaciar de Avalugg con ${users.length} jugadores! Usa !w !a !s !d para moverte (ej: !aasaa)`, 'system');
+  if (ms.regenEnabled) avlLog(`🧊 Regeneración de Plataformas activa: las casillas caídas reaparecen a los ${ms.regenSeconds} s`, '');
+  addChatMessage(null, `❄️ ¡Comienza Glaciar de Avalugg con ${users.length} jugadores! Usa !w !a !s !d para moverte (ej: !aasaa)${ms.regenEnabled ? ` · 🧊 Las plataformas caídas reaparecen a los ${ms.regenSeconds} s` : ''}`, 'system');
 }
 
 /* ---------------------------------------------------------
@@ -792,6 +843,34 @@ function avlCellEl(row, col) {
 function markAvaluggCellBroken(row, col) {
   const el = avlCellEl(row, col);
   if (el) spawnAvaluggIceBreak(el);
+}
+
+// Regeneración de Plataformas: si la opción está activa, programa la
+// reaparición de la casilla recién rota pasados ms.regenSeconds segundos.
+function scheduleAvaluggRegen(row, col) {
+  const ms = state.modeState;
+  if (!ms || !ms.regenEnabled) return;
+  const id = setTimeout(() => regenerateAvaluggCell(row, col), ms.regenSeconds * 1000);
+  ms.regenTimeouts.push(id);
+}
+
+// La casilla vuelve a verse como hielo normal (se quitan el agujero y los
+// trocitos flotantes) y deja de constar como rota, de modo que si alguien
+// la pisa y no era segura se romperá otra vez.
+function regenerateAvaluggCell(row, col) {
+  const ms = state.modeState;
+  if (!ms || ms.phase !== 'playing') return;
+  const key = row + ',' + col;
+  if (!ms.brokenCells.has(key)) return;
+  ms.brokenCells.delete(key);
+  const el = avlCellEl(row, col);
+  if (!el) return;
+  el.querySelectorAll('.avl-ice-floater, .avl-ice-shard, .avl-ice-splash').forEach(n => n.remove());
+  el.classList.remove('avl-cell-broken', 'avl-cell-shatter');
+  el.classList.remove('avl-cell-regen');
+  void el.offsetWidth;
+  el.classList.add('avl-cell-regen');
+  setTimeout(() => el.classList.remove('avl-cell-regen'), AVL_REGEN_ANIM_MS);
 }
 
 // Efecto visual del hielo al romperse: la celda pasa a su estado "roto"
@@ -958,6 +1037,7 @@ function handleAvaluggFall(user) {
   if (!ms.brokenCells.has(key)) {
     ms.brokenCells.add(key);
     markAvaluggCellBroken(row, col);
+    scheduleAvaluggRegen(row, col);
   }
   playAvaluggFall();
   avlLog(`❄️ @${user} pisa hielo quebradizo y cae al agua helada...`, 'dmg');

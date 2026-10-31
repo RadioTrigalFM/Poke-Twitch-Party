@@ -1,6 +1,7 @@
 import { handleArenaCmd } from './modes/arena.js';
 import { handleAvaluggCmd } from './modes/avalugg.js';
 import { handleBossCmd } from './modes/boss.js';
+import { handleCharcaCmd } from './modes/charca.js';
 import { handleExtranjeriaCmd } from './modes/extranjeria.js';
 import { handlePasapalabraCmd } from './modes/pasapalabra.js';
 import { handlePokerusCmd } from './modes/pokerus.js';
@@ -12,7 +13,45 @@ import { handleVolcanCmd } from './modes/volcan.js';
 import { handleZoroarksCmd } from './modes/zoroarks.js';
 import { addChatMessage } from './chat.js';
 import { state } from './state.js';
-import { isJoinCommandBlocked } from './subsMode.js';
+import { ARENA_POKEMON_DB } from './data/arenaPokemonDb.js';
+import { JOIN_COMMANDS_BY_MODE, isJoinCommandBlocked } from './subsMode.js';
+
+/* ---------------------------------------------------------
+   ATAJO DE INSCRIPCIÓN: "!abra" == "!pokemon abra"
+   ---------------------------------------------------------
+   En los modos que se inscriben con !pokemon [nombre] (Coliseo, Boss,
+   Pokerus, Rayo Solar, Zona Safari y El Volcán) también vale escribir
+   solo el nombre del Pokémon con la exclamación delante (!abra,
+   !pikachu, !mr. mime...). Se resuelve aquí, antes del filtro del Modo
+   Subs y de los handlers de cada modo, reescribiendo el mensaje al
+   comando canónico: así el resto del código (lobby, bloqueos de sprites,
+   shiny, cambio de Pokémon en el Boss...) no necesita saber que existe el
+   atajo, y el Modo Subs también lo filtra igual que a !pokemon.
+   Solo se reescribe si el texto coincide EXACTAMENTE con el nombre de un
+   Pokémon (mismo criterio que ya usan los handlers: minúsculas, nombre
+   completo), así que ningún comando propio del modo (!go, !atacar, !d...)
+   puede confundirse con un Pokémon.
+   --------------------------------------------------------- */
+const POKEMON_JOIN_MODES = new Set(
+  Object.keys(JOIN_COMMANDS_BY_MODE).filter(mode => JOIN_COMMANDS_BY_MODE[mode].includes('!pokemon'))
+);
+let pokemonByShortcut = null;
+
+function normalizePokemonShortcut(str) {
+  return String(str).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function findPokemonByShortcut(text) {
+  if (!pokemonByShortcut) {
+    pokemonByShortcut = new Map();
+    ARENA_POKEMON_DB.forEach(p => {
+      const key = normalizePokemonShortcut(p.name);
+      if (!pokemonByShortcut.has(key)) pokemonByShortcut.set(key, p.name);
+    });
+  }
+  if (!text.startsWith('!')) return null;
+  return pokemonByShortcut.get(normalizePokemonShortcut(text.slice(1))) || null;
+}
 
 /* =========================================================
    COMMAND ROUTER
@@ -27,11 +66,21 @@ import { isJoinCommandBlocked } from './subsMode.js';
    corresponde, dentro de handleBossCmd (ver modes/boss.js).
    ========================================================= */
 export function handleChatCommand(user, msg) {
-  const text = msg.trim();
-  const parts = text.split(/\s+/);
-  const cmd = parts[0].toLowerCase();
+  let text = msg.trim();
+  let parts = text.split(/\s+/);
+  let cmd = parts[0].toLowerCase();
 
   if (!state.currentMode) return;
+
+  // Atajo "!<nombre del Pokémon>" -> "!pokemon <nombre>" (ver arriba).
+  if (POKEMON_JOIN_MODES.has(state.currentMode) && cmd !== '!pokemon') {
+    const shortcutName = findPokemonByShortcut(text);
+    if (shortcutName) {
+      text = '!pokemon ' + shortcutName;
+      parts = text.split(/\s+/);
+      cmd = '!pokemon';
+    }
+  }
 
   // Modo Subs: si está activo, solo los suscriptores (o el streamer) pueden
   // usar el comando de inscripción/participación de cada modo. El resto de
@@ -54,5 +103,6 @@ export function handleChatCommand(user, msg) {
     case 'extranjeria': handleExtranjeriaCmd(user, cmd, parts, text); break;
     case 'voltorb': handleVoltorbCmd(user, cmd, parts, text); break;
     case 'avalugg': handleAvaluggCmd(user, cmd, parts, text); break;
+    case 'charca': handleCharcaCmd(user, cmd, parts); break;
   }
 }

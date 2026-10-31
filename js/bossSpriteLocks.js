@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { showModal } from './utils.js';
 import { BOSS_UNLOCKABLE_SPRITES } from './data/bossUnlockableSpritesDb.js';
 
 /* =========================================================
@@ -97,4 +98,40 @@ export function unlockBossLevelSprites(level) {
   });
   if (newlyUnlocked.length) saveBossSpriteUnlocks();
   return newlyUnlocked;
+}
+
+/* ---------------------------------------------------------
+   PANEL "CONTENIDO DESBLOQUEABLE" (botón 🔓 de la tarjeta del Boss)
+   ---------------------------------------------------------
+   Lista, en la pantalla de selección de modo, todo el contenido que se
+   desbloquea en el Boss cooperativo (BOSS_UNLOCKABLE_SPRITES) y cuánto
+   lleva conseguido el streamer. Lo ya desbloqueado se muestra con su
+   nombre; lo que no, como "???" junto al nivel que lo desbloquea.
+   --------------------------------------------------------- */
+function escapeHtmlText(text) {
+  return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+export function openBossUnlocksModal() {
+  const total = BOSS_UNLOCKABLE_SPRITES.length;
+  // Orden por nivel (estable: dentro de un mismo nivel se mantiene el
+  // orden en que están declaradas en la base de datos).
+  const entries = BOSS_UNLOCKABLE_SPRITES
+    .map((entry, i) => ({ entry, i }))
+    .sort((a, b) => a.entry.level - b.entry.level || a.i - b.i)
+    .map(x => x.entry);
+  const unlockedCount = entries.filter(e => state.unlockedBossSprites.has(e.name.toLowerCase())).length;
+
+  const rows = entries.map(entry => {
+    const unlocked = state.unlockedBossSprites.has(entry.name.toLowerCase());
+    return unlocked
+      ? `<li class="boss-unlocks-row is-unlocked"><span class="boss-unlocks-state">✅</span><span class="boss-unlocks-name">${escapeHtmlText(entry.name)}</span><span class="boss-unlocks-level">Nivel ${entry.level}</span></li>`
+      : `<li class="boss-unlocks-row is-locked"><span class="boss-unlocks-state">🔒</span><span class="boss-unlocks-name">???</span><span class="boss-unlocks-level">Se desbloquea en el Nivel ${entry.level}</span></li>`;
+  }).join('');
+
+  const body = `
+    <div class="boss-unlocks-summary">Has desbloqueado <b>${unlockedCount}</b> de <b>${total}</b> contenidos</div>
+    <ul class="boss-unlocks-list">${rows}</ul>
+  `;
+  showModal('🔓 Contenido desbloqueable', body, [{ label: 'Cerrar', class: 'btn-secondary' }], { wide: true });
 }
