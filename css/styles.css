@@ -4817,6 +4817,21 @@
     margin-top: var(--boss-offset-y, 0px);
   }
   .boss-sprite.enemy-normal-size.pmd-slot .pmd-fallback-img { width: 80%; height: 80%; }
+  /* Bajada real del sprite del jefe (--boss-drop-y, fijada por boss.js a
+     partir de dropY en bossSpriteAdjustmentsDb.js). Se hace con
+     "position: relative; top" porque --boss-offset-y (margin-top) no
+     desplaza nada en este contenedor flex-end. Es un desplazamiento en px
+     sobre el fotograma, común a todas las animaciones y a ambos tamaños
+     (normal y fase final), y no toca a .boss-enemy-info (tarjeta de
+     nombre + barra de vida), que cuelga del contenedor y no del
+     fotograma. Con Attack se suma --boss-attack-drop-y (0 por defecto). */
+  .boss-sprite.pmd-slot .pmd-frame {
+    position: relative;
+    top: var(--boss-drop-y, 0px);
+  }
+  .boss-sprite.pmd-slot .pmd-frame[data-pmd-anim="Attack"] {
+    top: calc(var(--boss-drop-y, 0px) + var(--boss-attack-drop-y, 0px));
+  }
   /* Compensa que el sprite grande (arriba, sin "enemy-normal-size") ocupe
      una caja más alta que el sprite normal de las fases 1-9: como
      .boss-enemies-zone se centra en el mismo punto fijo en todas las fases
@@ -5022,7 +5037,7 @@
      oscura con borde dorado) pero más discreto -sin insignia ni barra de
      progreso-, ya que es solo un recordatorio informativo, no un
      indicador de estado permanente. Vive como elemento propio, anclado a
-     la esquina superior derecha de #boss-scene (independiente de
+     la esquina inferior derecha de #boss-scene (independiente de
      .boss-top-banners, que solo aloja ya el indicador de nivel, centrado
      arriba): en columna, para que cada comando ocupe su propia fila
      -título en la primera línea y descripción justo debajo, ver el <br>
@@ -5034,7 +5049,7 @@
      muestra en columna. */
   .boss-commands-banner {
     position: absolute;
-    top: 3%;
+    bottom: 3%;
     right: 3%;
     z-index: 5;
     flex-direction: column;
@@ -5368,8 +5383,9 @@
     font-size: 11px;
     color: var(--red);
   }
-  /* Ficha de combatiente al pasar el cursor por encima (ver
-     showBossFiche/hideBossFiche en boss.js): se añade directamente a
+  /* Ficha de información (la del jefe, al pasar el cursor por su tarjeta,
+     ver showBossEnemyFiche/hideBossFiche en boss.js; la del combatiente
+     seleccionado hereda este estilo base, ver .boss-fiche-selected): se añade directamente a
      <body>, fuera de #boss-scene, para que su position:fixed no se vea
      afectado por el "container-type" de la escena (que crearía un
      contenedor de posicionamiento propio y rompería el fixed). Se ancla al
@@ -5398,6 +5414,78 @@
   .boss-fiche.visible {
     opacity: 1;
     visibility: visible;
+  }
+  /* Ventana del combatiente SELECCIONADO con un clic en su tarjeta de nombre
+     (ver selectBossFighter/refreshBossSelectedFiche en boss.js): esquina
+     superior derecha de la pantalla (junto al chat lateral, igual que la
+     ficha del jefe) y, a diferencia de ella, recibe clics: cerrar (✕),
+     botones «+» de mejoras pendientes y chips de tipo. */
+  .boss-fiche-selected {
+    top: 12px;
+    right: 336px;
+    transform: none;
+    width: 230px;
+    pointer-events: auto;
+    border-color: rgba(255,214,10,.75);
+  }
+  .game-scene:fullscreen > .boss-fiche-selected,
+  .game-scene:-webkit-full-screen > .boss-fiche-selected,
+  .game-scene.fs-fallback > .boss-fiche-selected {
+    right: 16px;
+  }
+  .boss-fiche-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+  }
+  .boss-fiche-close:hover {
+    color: var(--text);
+  }
+  .boss-fiche-type-chip.clickable {
+    cursor: pointer;
+  }
+  .boss-fiche-type-chip.clickable:hover {
+    opacity: 1;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.5);
+  }
+  .boss-fiche-plus {
+    margin-left: 8px;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: 5px;
+    border: 1px solid rgba(255,214,10,.7);
+    background: rgba(255,214,10,.15);
+    color: var(--yellow);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    vertical-align: middle;
+  }
+  .boss-fiche-plus:hover {
+    background: rgba(255,214,10,.35);
+  }
+  .boss-fiche-hint {
+    margin-top: 8px;
+    font-size: 9px;
+    color: var(--muted);
+    text-align: center;
+    opacity: .8;
+  }
+  /* Tarjeta de nombre del combatiente seleccionado (clase añadida por
+     refreshBossSelectedFiche en boss.js). */
+  .boss-fighter-name.selected {
+    border-color: var(--yellow);
+    color: var(--yellow);
+    box-shadow: 0 0 0 1px var(--yellow), 0 0 8px rgba(255,214,10,.6);
   }
   .boss-fiche-user {
     font-size: 11px;
@@ -9898,6 +9986,29 @@
     gap: 6px;
   }
   .charca-lobby-icon { font-size: 34px; }
+  /* Botón ☕ de la esquina del lobby: activa la canción «Taza» (desbloqueada
+     con el código "soyunataza", ver charca.js). Oculto hasta entonces. */
+  .charca-taza-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+    line-height: 1;
+    border-radius: 12px;
+    border: 2px solid var(--dark-3);
+    background: var(--dark-2);
+    cursor: pointer;
+    opacity: .6;
+    transition: opacity .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .charca-taza-btn:hover { opacity: 1; }
+  .charca-taza-btn.active {
+    opacity: 1;
+    border-color: var(--yellow);
+    box-shadow: 0 0 10px rgba(255,214,10,.6);
+  }
   .charca-lobby-head .big-count {
     font-size: 34px;
     color: var(--yellow);

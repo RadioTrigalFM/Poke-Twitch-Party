@@ -9,6 +9,7 @@ import { toggleLobbyExpelPopover } from '../lobbyExpel.js';
 import { backToMenu } from '../modeLauncher.js';
 import { PMDSprite, PMD_DIR, pmdPreload } from '../pmdSprite.js';
 import { state } from '../state.js';
+import { isCharcaTazaUnlocked, UNLOCKS_CHANGED_EVENT } from '../codes.js';
 import { $, detachModalFromGameContent, toast } from '../utils.js';
 import { modeSetInterval, modeSetTimeout, registerModeCleanup, runModeCleanup } from '../modeCleanup.js';
 
@@ -152,6 +153,47 @@ const CHARCA_PHASE_TEXT = {
   checking: 'Comprobando…',
 };
 
+// Preferencia (guardada entre sesiones) de usar la canción «Taza» en lugar de
+// la de La Charca (ver el botón ☕ del lobby). Solo tiene efecto si el código
+// "soyunataza" está desbloqueado (ver codes.js).
+const CHARCA_TAZA_PREF_KEY = 'pokekukoro_charca_taza_song';
+
+function isCharcaTazaSongOn() {
+  if (!isCharcaTazaUnlocked()) return false;
+  try {
+    return localStorage.getItem(CHARCA_TAZA_PREF_KEY) === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
+function setCharcaTazaSongOn(on) {
+  try {
+    localStorage.setItem(CHARCA_TAZA_PREF_KEY, on ? '1' : '0');
+  } catch (e) {
+    // sin persistencia: solo vale para esta sesión
+    charcaTazaSessionFallback = on;
+  }
+}
+let charcaTazaSessionFallback = false;
+
+// Muestra/oculta el botón ☕ del lobby según el desbloqueo y refleja si la
+// canción «Taza» está activada. Se llama al pintar el lobby y cuando un
+// código desbloquea algo (UNLOCKS_CHANGED_EVENT).
+function syncCharcaTazaButton() {
+  const btn = $('charca-taza-btn');
+  if (!btn) return;
+  const unlocked = isCharcaTazaUnlocked();
+  btn.style.display = unlocked ? '' : 'none';
+  const on = isCharcaTazaSongOn() || (unlocked && charcaTazaSessionFallback);
+  btn.classList.toggle('active', on);
+  btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  btn.title = on
+    ? 'Canción «Taza» activada: clic para volver a la canción de La Charca'
+    : 'Clic para usar la canción «Taza» en lugar de la de La Charca';
+}
+document.addEventListener(UNLOCKS_CHANGED_EVENT, syncCharcaTazaButton);
+
 export function startCharca() {
   // Igual que en Voltorb Explosivo / El Volcán: si la escena anterior
   // estaba en pantalla completa, se guarda para restaurarla sobre el lobby
@@ -280,9 +322,18 @@ function renderCharcaLobby() {
         <div class="charca-lobby-empty">Esperando a que el chat se apunte...</div>
       </div>
       <button class="charca-start-btn" id="charca-start-btn" disabled>▶ Comenzar Partida</button>
+      <button type="button" class="charca-taza-btn" id="charca-taza-btn" style="display:none;" aria-label="Canción Taza">☕</button>
     </div>
   `;
   $('charca-start-btn').onclick = () => startCharcaMatch();
+  $('charca-taza-btn').onclick = () => {
+    const turnOn = !(isCharcaTazaSongOn() || charcaTazaSessionFallback);
+    charcaTazaSessionFallback = turnOn;
+    setCharcaTazaSongOn(turnOn);
+    syncCharcaTazaButton();
+    toast(turnOn ? '☕ Canción «Taza» activada' : '🐸 Canción de La Charca activada');
+  };
+  syncCharcaTazaButton();
   renderCharcaLobbyGrid();
 }
 
@@ -366,7 +417,7 @@ function startCharcaMatch() {
   // lobby sigue con la música del menú, ver MODES_WITHOUT_LOBBY_MUSIC en
   // modeLauncher.js). Suena en bucle hasta salir del modo: al volver al
   // menú, backToMenu() la sustituye por la del menú.
-  playModeMusic('charca');
+  playModeMusic(isCharcaTazaSongOn() || (isCharcaTazaUnlocked() && charcaTazaSessionFallback) ? 'charca-taza' : 'charca');
   addChatMessage(null, `🐸 ¡Comienza La Charca con ${ms.order.length} jugador${ms.order.length === 1 ? '' : 'es'}!`, 'system', { mirror: false });
   playVeMatchStart();
   charcaFlow(beginCharcaRound());

@@ -23,22 +23,41 @@
 //     .boss-sprite.enemy-normal-size en styles.css): 1.00 = sin cambios,
 //     >1 agranda, <1 reduce.
 //
+// Campos nuevos (dropY / attackDropY), los que SÍ mueven el sprite:
+//   - dropY: píxeles que se BAJA el sprite del jefe respecto a su posición
+//     por defecto, aplicados igual en TODAS las animaciones (Walk, Attack,
+//     Hurt...): así, al bajar a un jefe, no cambia la altura a la que se
+//     ve mientras ataca o recibe daño respecto a cuando camina. Se aplica
+//     con "position: relative; top" sobre el fotograma (ver .boss-sprite.
+//     pmd-slot .pmd-frame en styles.css), por lo que es un desplazamiento
+//     visual en px, igual en fase normal y en fase final, y NO mueve la
+//     tarjeta de nombre/barra de vida (.boss-enemy-info), que cuelga del
+//     contenedor y no del fotograma.
+//   - attackDropY: bajada EXTRA, solo mientras se reproduce la animación
+//     Attack (se suma a dropY). Sirve para sprites cuyo lienzo de Attack
+//     es mucho más alto que el de Walk y, al no poder el navegador medir
+//     el margen transparente (canvas bloqueado), el dibujo sube de golpe al
+//     atacar (caso de Aegislash Espada).
+//   offsetY (margin-top) se conserva tal cual por compatibilidad, pero
+//   dentro del contenedor flex-end del sprite no desplaza nada: para mover
+//   un jefe usa dropY / attackDropY.
+//
 // Un dex sin entrada aquí no recibe ningún ajuste (offsetY: 0, scaleAdj: 1,
-// ver applyBossSpriteAdjustment en boss.js).
+// dropY: 0, attackDropY: 0, ver applyBossSpriteAdjustment en boss.js).
 export const BOSS_SPRITE_ADJUSTMENTS = {
   452: { offsetY: 19, scaleAdj: 1.16 }, // Nivel 1 · Fase 15 · Drapion
-  9084: { offsetY: 76, scaleAdj: 1.21 }, // Nivel 2 · Fase 10 · Exeggutor Alola
+  9084: { offsetY: 76, scaleAdj: 1.21, dropY: 60 }, // Nivel 2 · Fase 10 · Exeggutor Alola
   9068: { offsetY: 23, scaleAdj: 1.06 }, // Nivel 2 · Fase 15 · Marowak Alola
   272: { offsetY: 29, scaleAdj: 1.25 }, // Nivel 3 · Fase 10 · Ludicolo
-  9002: { offsetY: 140, scaleAdj: 1.00 }, // Nivel 3 · Fase 15 · Wishiwashi Banco
+  9002: { offsetY: 140, scaleAdj: 1.00, dropY: 100 }, // Nivel 3 · Fase 15 · Wishiwashi Banco
   398: { offsetY: 28, scaleAdj: 1.15 }, // Nivel 4 · Fase 10 · Staraptor
   681: { offsetY: 43, scaleAdj: 1.00 }, // Nivel 4 · Fase 15 · Aegislash
-  9001: { offsetY: 43, scaleAdj: 1.00 }, // Nivel 4 · Fase 15 (forma tras transformarse) · Aegislash Espada
+  9001: { offsetY: 43, scaleAdj: 1.00, attackDropY: 125 }, // Nivel 4 · Fase 15 (forma tras transformarse) · Aegislash Espada
   470: { offsetY: 23, scaleAdj: 1.15 }, // Nivel 5 · Fase 10 · Leafeon
   9003: { offsetY: 71, scaleAdj: 1.04 }, // Nivel 5 · Fase 15 · Floette Flor Eterna
   26: { offsetY: 25, scaleAdj: 1.12 }, // Nivel 6 · Fase 10 · Raichu
-  902: { offsetY: 70, scaleAdj: 1.00 }, // Nivel 6 · Fase 15 · Basculegion
-  9020: { offsetY: 70, scaleAdj: 1.00 }, // Nivel 6 · Fase 15 · Basculegion Hembra
+  902: { offsetY: 70, scaleAdj: 1.00, dropY: 50 }, // Nivel 6 · Fase 15 · Basculegion
+  9020: { offsetY: 70, scaleAdj: 1.00, dropY: 50 }, // Nivel 6 · Fase 15 · Basculegion Hembra
   649: { offsetY: 38, scaleAdj: 1.30 }, // Nivel 7 · Fase 10 · Genesect
   648: { offsetY: 30, scaleAdj: 1.00 }, // Nivel 7 · Fase 15 · Meloetta
   9004: { offsetY: 68, scaleAdj: 1.00 }, // Nivel 7 · Fase 15 (forma tras transformarse) · Meloetta Danza
@@ -46,11 +65,11 @@ export const BOSS_SPRITE_ADJUSTMENTS = {
   492: { offsetY: 6, scaleAdj: 1.00 }, // Nivel 8 · Fase 15 · Shaymin
   9005: { offsetY: 67, scaleAdj: 1.00 }, // Nivel 8 · Fase 15 (forma tras transformarse) · Shaymin Cielo
   9052: { offsetY: 33, scaleAdj: 1.35 }, // Nivel 9 · Fase 10 · Sableye Mega
-  448: { offsetY: 33, scaleAdj: 1.00 }, // Nivel 9 · Fase 15 · Lucario
-  9065: { offsetY: 33, scaleAdj: 1.00 }, // Nivel 9 · Fase 15 (forma tras transformarse) · Lucario Mega
+  448: { offsetY: 33, scaleAdj: 1.00, dropY: 30 }, // Nivel 9 · Fase 15 · Lucario
+  9065: { offsetY: 33, scaleAdj: 1.00, dropY: 30 }, // Nivel 9 · Fase 15 (forma tras transformarse) · Lucario Mega
   721: { offsetY: 33, scaleAdj: 1.38 }, // Nivel 10 · Fase 10 · Volcanion
   720: { offsetY: 35, scaleAdj: 1.00 }, // Nivel 10 · Fase 15 · Hoopa
-  9007: { offsetY: 135, scaleAdj: 1.00 }, // Nivel 10 · Fase 15 (forma tras transformarse) · Hoopa Desatado
+  9007: { offsetY: 135, scaleAdj: 1.00, dropY: 118 }, // Nivel 10 · Fase 15 (forma tras transformarse) · Hoopa Desatado
   244: { offsetY: 37, scaleAdj: 1.26 }, // Nivel 11 · Fase 10 · Entei
   249: { offsetY: 70, scaleAdj: 1.00 }, // Nivel 11 · Fase 15 · Lugia
   9008: { offsetY: 104, scaleAdj: 1.23 }, // Nivel 11 · Fase 15 (forma tras transformarse) · Lugia Oscuro
@@ -85,8 +104,9 @@ export const BOSS_SPRITE_ADJUSTMENTS = {
   493: { offsetY: 120, scaleAdj: 1.50 }, // Nivel 20 · Fase 15 · Arceus
 };
 
-// Devuelve el ajuste { offsetY, scaleAdj } para un dex dado, o los valores
-// neutros (0 / 1) si no tiene entrada propia en la tabla de arriba.
+// Devuelve el ajuste { offsetY, scaleAdj, dropY, attackDropY } para un dex
+// dado; los campos que su entrada no define (o todos, si no tiene entrada
+// propia en la tabla de arriba) valen sus neutros (0 / 1 / 0 / 0).
 export function getBossSpriteAdjustment(dexId) {
-  return BOSS_SPRITE_ADJUSTMENTS[dexId] || { offsetY: 0, scaleAdj: 1 };
+  return Object.assign({ offsetY: 0, scaleAdj: 1, dropY: 0, attackDropY: 0 }, BOSS_SPRITE_ADJUSTMENTS[dexId]);
 }

@@ -399,6 +399,10 @@ export class PMDSprite {
       }
       if (this.fallbackImg) this.fallbackImg.style.display = 'none';
       this.frameEl.classList.toggle('pmd-hurt', animName === 'Hurt');
+      // Nombre de la animación en curso, expuesto como atributo para que el
+      // CSS pueda ajustar solo una animación concreta (p.ej. la bajada
+      // extra de Attack de algunos jefes del modo Boss, ver styles.css).
+      this.frameEl.dataset.pmdAnim = animName;
       const { frameWidth, frameHeight, durations, imgUrl } = anim;
       this.frameEl.style.width = frameWidth + 'px';
       this.frameEl.style.height = frameHeight + 'px';

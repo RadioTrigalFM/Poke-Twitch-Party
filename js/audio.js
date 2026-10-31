@@ -1186,6 +1186,10 @@ const MODE_MUSIC_SRC = {
   'rayosolar': 'assets/music/rayo-solar.mp3',
   'pasapalabra': 'assets/music/pasapalabra.mp3',
   'charca': 'assets/music/charca.mp3',
+  // Canción alternativa de La Charca, desbloqueada con el código
+  // "soyunataza" (ver codes.js) y activable con el icono ☕ del lobby (ver
+  // charca.js).
+  'charca-taza': 'assets/music/taza.mp3',
 };
 // Pistas del menú principal (pantalla de selección de modo, ver
 // MODE_TITLES/showScreen('menu-screen') en modeLauncher.js/

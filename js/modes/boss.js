@@ -23,6 +23,7 @@ import { isBroadcaster } from '../subsMode.js';
 import { $, addScore, detachModalFromGameContent, showModal, toast } from '../utils.js';
 import { currentFullscreenElement } from '../fullscreen.js';
 import { registerModeCleanup } from '../modeCleanup.js';
+import { isBossDebugUnlocked, UNLOCKS_CHANGED_EVENT } from '../codes.js';
 
 // Icono OFICIAL de un objeto (sprite descargado de PokeAPI, ver
 // assets/items/ y bossItemsDb.js), para usar en cualquier sitio de la
@@ -1244,6 +1245,15 @@ export function startBoss() {
     // muestra a la derecha de la pantalla al pasar el cursor sobre un
     // combatiente en espera; null hasta que se muestra la primera vez.
     bossFicheEl: null,
+    // Combatiente aliado SELECCIONADO con un primer clic en su tarjeta de
+    // nombre (ver onFighterCardClick/selectBossFighter): mientras haya uno,
+    // su ventana de información (ms.bossSelFicheEl, esquina superior
+    // derecha) se mantiene abierta y desde ella el streamer reparte sus
+    // mejoras pendientes o cambia el tipo de su ataque. Un segundo clic
+    // sobre la misma tarjeta lo manda a luchar (ver selectChallenger).
+    selectedUser: null,
+    bossSelFicheEl: null,
+    bossFicheTimer: null, // setInterval que mantiene al día esa ventana mientras hay selección
     // true justo después de caer el jefe de la fase final (15) de un nivel,
     // mientras se espera a que el streamer ELIJA un objeto del cofre recién
     // ganado (ver openBossChestModal/resolveBossChestChosen; ya no se puede
@@ -1314,6 +1324,8 @@ export function startBoss() {
     }
     if (ms.lobbySprites) Object.values(ms.lobbySprites).forEach(d => d.sprite && d.sprite.destroy());
     if (ms.bossFicheEl) ms.bossFicheEl.remove();
+    if (ms.bossSelFicheEl) ms.bossSelFicheEl.remove();
+    if (ms.bossFicheTimer) clearInterval(ms.bossFicheTimer);
     const staleAfkVoteOverlay = document.getElementById('boss-afk-vote-overlay');
     if (staleAfkVoteOverlay) staleAfkVoteOverlay.remove();
   });
@@ -2167,6 +2179,16 @@ function handleBossLevelUp(user, parts) {
     return;
   }
 
+  applyBossLevelUps(ms, user, targetUser, requested, targetsOther);
+}
+
+// Parte común de !levelup (ver handleBossLevelUp) y de los botones «+» de la
+// ventana del combatiente seleccionado (ver bossFicheLevelUp): valida el
+// presupuesto de mejoras pendientes de `targetUser` y aplica `requested`
+// ({ atk, hp, speed }). `user` es quien las reparte (el propio jugador o el
+// streamer) y `targetsOther` indica que lo hace el streamer sobre otro.
+function applyBossLevelUps(ms, user, targetUser, requested, targetsOther) {
+  const requestedTotal = requested.atk + requested.hp + requested.speed;
   const player = ms.players[targetUser];
   if (!player.levels) player.levels = freshLevels();
 
@@ -2225,7 +2247,7 @@ function handleBossLevelUp(user, parts) {
     : `${player.pokemon.name} de @${user}`;
   // Si aún le quedan mejoras pendientes por elegir en este nivel se lo
   // recordamos; si ya las ha gastado todas, se omite ese aviso (ver mismo
-  // criterio en showBossFiche/handleBossStats).
+  // criterio en buildBossSelectedFicheHtml/handleBossStats).
   const remaining = bossLevelUpsAvailable(ms, player);
   const remainingText = remaining > 0 ? ` · Mejoras pendientes: ${remaining}` : '';
   addChatMessage(null, `⬆️ ${who} sube ${label}! Nivel ${ms.bossLevel} · Ataque: ${stats.atk} · Vida: ${stats.maxHp} · Velocidad: ${Math.round((1 - stats.speedMs / BOSS_ATK_SPEED_MS) * 100)}% más rápido${remainingText}`, 'correct');
@@ -2374,7 +2396,7 @@ function startBossFight() {
 }
 
 // Color de fondo de cada chip de tipo en la ficha de combatiente (ver
-// showBossFiche): mismos colores aproximados que usa la franquicia para
+// buildBossSelectedFicheHtml): mismos colores aproximados que usa la franquicia para
 // cada tipo, uno por cada clave que puede aparecer en TYPE_CHART.
 const BOSS_TYPE_COLORS = {
   'Normal': '#A8A878', 'Fuego': '#F08030', 'Agua': '#6890F0',
@@ -2404,34 +2426,129 @@ function ensureBossFicheEl() {
   return el;
 }
 
+// Igual que ensureBossFicheEl, pero para la ventana del combatiente
+// SELECCIONADO (ver selectBossFighter): es un elemento aparte para que la
+// ficha del jefe, que sigue mostrándose al pasar el cursor por su tarjeta,
+// nunca la pise ni la cierre. Esta sí recibe clics (botones de mejora y
+// chips de tipo), de ahí .boss-fiche-selected en styles.css.
+function ensureBossSelectedFicheEl() {
+  const ms = state.modeState;
+  if (!ms) return null;
+  if (ms.bossSelFicheEl && document.body.contains(ms.bossSelFicheEl)) return ms.bossSelFicheEl;
+  // Puede haberse movido dentro de la escena en pantalla completa (ver
+  // relocateBossFiche): en ese caso no cuelga de <body> pero sigue vivo.
+  if (ms.bossSelFicheEl && ms.bossSelFicheEl.isConnected) return ms.bossSelFicheEl;
+  const el = document.createElement('div');
+  el.className = 'boss-fiche boss-fiche-selected';
+  el.id = 'boss-fiche-selected';
+  el.onclick = onBossSelectedFicheClick;
+  document.body.appendChild(el);
+  ms.bossSelFicheEl = el;
+  return el;
+}
+
 // Reubica la ficha dentro de la escena en pantalla completa (nativa o
 // simulada), igual que relocateModal hace con el modal global (ver
 // utils.js): al vivir por defecto colgada de <body>, si #boss-scene está
 // en pantalla completa el navegador solo pinta lo que cuelga de esa
 // escena, así que la ficha se queda invisible aunque tenga z-index alto.
-// Se llama justo antes de cada showBossFiche para que también funcione si
+// Se llama justo antes de mostrar cada ficha para que también funcione si
 // se entra o sale de pantalla completa con la ficha ya abierta.
 function relocateBossFiche(el) {
   const target = currentFullscreenElement() || document.body;
   if (el.parentElement !== target) target.appendChild(el);
 }
 
-// Muestra, a la derecha de la pantalla, la ficha de `user`: su nombre de
-// usuario, el Pokémon elegido, sus tipos y sus estadísticas (vida actual y
-// máxima, ataque y velocidad). Solo se muestra si, ahora mismo, nadie está
-// combatiendo ni de camino al duelo (ms.activeUser === null): en cuanto el
-// streamer elige a alguien la ficha deja de poder consultarse (ver también
-// hideBossFiche, llamada de inmediato al principio de selectChallenger).
-// Se llama al pasar el cursor sobre un combatiente ya apuntado que esté
-// esperando en su puesto (ver el mouseenter añadido en createFighterSprite).
-function showBossFiche(user) {
+// Clic en la tarjeta de nombre de un combatiente aliado (ver
+// createFighterSprite). Primer clic: lo SELECCIONA y abre su ventana de
+// información en la esquina superior derecha (ver selectBossFighter), sin
+// mandarlo a luchar. Segundo clic sobre el que ya está seleccionado:
+// arranca su camino hacia el jefe (ver selectChallenger), que es lo que
+// antes hacía un solo clic. Clic sobre otra tarjeta: cambia la selección.
+function onFighterCardClick(user) {
   const ms = state.modeState;
-  if (!ms || ms.activeUser) return;
-  const p = ms.players[user];
-  if (!p) return;
-  const el = ensureBossFicheEl();
+  if (!ms || ms.phase !== 'fight' || !ms.players[user] || !ms.fighterSprites[user]) return;
+  if (ms.selectedUser === user) {
+    selectChallenger(user);
+    return;
+  }
+  selectBossFighter(user);
+}
+
+// Marca a `user` como combatiente seleccionado y abre/actualiza su ventana.
+// La selección se mantiene hasta que se pulsa la ✕ de la ventana, se
+// selecciona a otro, se le manda a luchar (ver selectChallenger) o la
+// partida sale de la fase de combate (ver refreshBossSelectedFiche).
+function selectBossFighter(user) {
+  const ms = state.modeState;
+  if (!ms || !ms.players[user]) return;
+  ms.selectedUser = user;
+  if (!ms.bossFicheTimer) {
+    // Mantiene la ventana al día (vida que se cura sola, cambio de
+    // Pokémon con !pokemon, mejoras hechas por chat con !levelup...) sin
+    // tener que tocar cada sitio que modifica al jugador.
+    ms.bossFicheTimer = setInterval(refreshBossSelectedFiche, 300);
+  }
+  refreshBossSelectedFiche();
+}
+
+// Cierra la ventana del combatiente seleccionado y deshace la selección.
+function clearBossSelection() {
+  const ms = state.modeState;
+  if (!ms) return;
+  ms.selectedUser = null;
+  if (ms.bossFicheTimer) {
+    clearInterval(ms.bossFicheTimer);
+    ms.bossFicheTimer = null;
+  }
+  refreshBossSelectedFiche();
+}
+
+// Sincroniza la ventana y el resaltado de la tarjeta con ms.selectedUser.
+// Si el combate sale de la fase 'fight' (cofre, cambio de nivel, game
+// over...) o el combatiente deja de estar apuntado, cierra la selección.
+// Solo reescribe el HTML cuando cambia, para no destruir un botón entre el
+// mousedown y el mouseup de un clic.
+function refreshBossSelectedFiche() {
+  const ms = state.modeState;
+  if (!ms) return;
+  const user = ms.selectedUser;
+  if (user && (ms.phase !== 'fight' || !ms.players[user])) {
+    ms.selectedUser = null;
+    if (ms.bossFicheTimer) {
+      clearInterval(ms.bossFicheTimer);
+      ms.bossFicheTimer = null;
+    }
+    refreshBossSelectedFiche();
+    return;
+  }
+  Object.entries(ms.fighterSprites || {}).forEach(([u, entry]) => {
+    if (entry.nameEl) entry.nameEl.classList.toggle('selected', u === user);
+  });
+  if (!user) {
+    if (ms.bossSelFicheEl) {
+      ms.bossSelFicheEl.classList.remove('visible');
+      ms.bossSelFicheEl._sig = '';
+    }
+    return;
+  }
+  const el = ensureBossSelectedFicheEl();
   if (!el) return;
   relocateBossFiche(el);
+  const html = buildBossSelectedFicheHtml(ms, user);
+  if (el._sig !== html) {
+    el.innerHTML = html;
+    el._sig = html;
+  }
+  el.classList.add('visible');
+}
+
+// HTML de la ventana del combatiente seleccionado: nombre de usuario,
+// Pokémon, tipos (clicables para cambiar el tipo del ataque), vida y
+// estadísticas, con un botón «+» junto a cada estadística mientras le
+// queden mejoras pendientes por repartir (ver bossLevelUpsAvailable).
+function buildBossSelectedFicheHtml(ms, user) {
+  const p = ms.players[user];
   const stats = playerEffectiveStats(ms, user);
   // Fuera de combate se muestra la vida ACTUAL persistida (con la que
   // terminó su último duelo, o la curación pasiva recibida mientras
@@ -2439,59 +2556,95 @@ function showBossFiche(user) {
   // handleBossStats).
   const currentHp = Math.max(0, typeof p.hp === 'number' ? p.hp : stats.maxHp);
   const speedPct = Math.round((1 - stats.speedMs / BOSS_ATK_SPEED_MS) * 100);
+  const available = bossLevelUpsAvailable(ms, p);
   // Se resalta (ver .boss-fiche-type-chip.active en styles.css) el tipo con
-  // el que atacará su próximo golpe (ver attackTypeIndex, cambiado con
-  // !habilidad1/!habilidad2 en handleBossAbility): el primario salvo que
-  // haya un segundo tipo y lo haya elegido explícitamente.
+  // el que atacará su próximo golpe (ver attackTypeIndex): el primario
+  // salvo que haya un segundo tipo y lo haya elegido explícitamente. Con
+  // dos tipos, y mientras no esté luchando ni de camino al jefe (misma
+  // regla que handleBossAbility), cada chip se puede pulsar para elegirlo.
   const activeTypeIdx = p.attackTypeIndex === 1 && p.pokemon.types[1] ? 1 : 0;
+  const canSwitchType = p.pokemon.types.length >= 2 && ms.activeUser !== user;
   const typesHtml = p.pokemon.types.map((t, i) => {
     const color = BOSS_TYPE_COLORS[t] || '#888';
-    const activeClass = i === activeTypeIdx ? ' active' : '';
-    return `<span class="boss-fiche-type-chip${activeClass}" style="background:${color}">${escapeHtml(t)}</span>`;
+    const cls = 'boss-fiche-type-chip' + (i === activeTypeIdx ? ' active' : '') + (canSwitchType ? ' clickable' : '');
+    const title = canSwitchType
+      ? `Usar el tipo ${t} en el ataque`
+      : (p.pokemon.types.length >= 2 ? 'No se puede cambiar el tipo mientras lucha o va de camino al jefe' : 'Solo tiene un tipo');
+    const action = canSwitchType ? ` data-action="type" data-idx="${i}"` : '';
+    return `<span class="${cls}"${action} title="${escapeHtml(title)}" style="background:${color}">${escapeHtml(t)}</span>`;
   }).join('');
-  // Barra de vida: mismo criterio de color que updateDuelHP (verde por
-  // defecto, amarillo al 50% o menos, rojo al 25% o menos), reutilizando
-  // las clases .hp-bar/.hp-bar-fill ya usadas en el resto del modo.
   const hpPct = Math.max(0, Math.min(100, (currentHp / stats.maxHp) * 100));
   const hpColorClass = hpPct <= 25 ? ' low' : hpPct <= 50 ? ' mid' : '';
-  // Mejoras de !levelup que le quedan por elegir en el nivel actual (ver
-  // bossLevelUpsAvailable): si no le queda ninguna, no se muestra esa fila,
-  // para no ensuciar la ficha con un "0" permanente la mayor parte del nivel.
-  const available = bossLevelUpsAvailable(ms, p);
+  const plus = (stat, label) => available > 0
+    ? `<button type="button" class="boss-fiche-plus" data-action="levelup" data-stat="${stat}" title="Subir ${label}">+</button>`
+    : '';
   const availableRow = available > 0
     ? `<div class="boss-fiche-stat-row"><span>🔧 Mejoras pendientes</span><b>${available}</b></div>`
     : '';
-  // Objeto equipado (ver BOSS_ITEMS/assignBossItem): se omite la fila si no
-  // lleva ninguno.
   const equippedItem = p.itemId && bossItemById(p.itemId);
   const itemRow = equippedItem
     ? `<div class="boss-fiche-stat-row"><span>🎒 Objeto</span><b>${bossItemIconHtml(equippedItem, 16)} ${escapeHtml(equippedItem.name)}</b></div>`
     : '';
-  el.innerHTML = `
+  return `
+    <button type="button" class="boss-fiche-close" data-action="close" title="Cerrar" aria-label="Cerrar">✕</button>
     <div class="boss-fiche-user">@${escapeHtml(user)}</div>
     <div class="boss-fiche-pokemon">${escapeHtml(p.pokemon.name)}</div>
     <div class="boss-fiche-types">${typesHtml}</div>
     <div class="boss-fiche-hp-bar hp-bar"><div class="hp-bar-fill${hpColorClass}" style="width:${hpPct}%"></div></div>
     <div class="boss-fiche-stat-row"><span>🏅 Nivel</span><b>${ms.bossLevel}</b></div>
-    <div class="boss-fiche-stat-row"><span>❤️ Vida</span><b>${currentHp} / ${stats.maxHp}</b></div>
-    <div class="boss-fiche-stat-row"><span>⚔️ Ataque</span><b>${stats.atk}</b></div>
-    <div class="boss-fiche-stat-row"><span>⚡ Velocidad</span><b>${speedPct > 0 ? `+${speedPct}%` : 'Base'}</b></div>
+    <div class="boss-fiche-stat-row"><span>❤️ Vida</span><b>${currentHp} / ${stats.maxHp}${plus('hp', 'Vida')}</b></div>
+    <div class="boss-fiche-stat-row"><span>⚔️ Ataque</span><b>${stats.atk}${plus('atk', 'Ataque')}</b></div>
+    <div class="boss-fiche-stat-row"><span>⚡ Velocidad</span><b>${speedPct > 0 ? `+${speedPct}%` : 'Base'}${plus('speed', 'Velocidad')}</b></div>
     ${itemRow}
     ${availableRow}
+    <div class="boss-fiche-hint">Clic de nuevo en su tarjeta para que luche</div>
   `;
-  el.classList.add('visible');
 }
 
-// Oculta la ficha (si estaba visible): al dejar de pasar el cursor sobre un
-// combatiente, o de inmediato en cuanto el streamer elige a alguien para
-// luchar (ver selectChallenger), momento en que deja de tener sentido
-// seguir consultando fichas.
+// Clics dentro de la ventana del combatiente seleccionado (delegación de
+// eventos, ver ensureBossSelectedFicheEl): cerrar, repartir una mejora
+// pendiente o cambiar el tipo del ataque.
+function onBossSelectedFicheClick(e) {
+  const ms = state.modeState;
+  const target = e.target.closest && e.target.closest('[data-action]');
+  if (!ms || !target || !ms.selectedUser) return;
+  const user = ms.selectedUser;
+  const action = target.dataset.action;
+  if (action === 'close') {
+    clearBossSelection();
+  } else if (action === 'levelup') {
+    bossFicheLevelUp(user, target.dataset.stat);
+  } else if (action === 'type') {
+    // Reutiliza !habilidad1/!habilidad2 (ver handleBossAbility), que ya
+    // valida fase, tipo único y combatiente en camino/duelo.
+    handleBossAbility(user, target.dataset.idx === '1' ? '!habilidad2' : '!habilidad1');
+    refreshBossSelectedFiche();
+  }
+}
+
+// Reparte UNA mejora pendiente de `user` en `stat` ('atk' | 'hp' | 'speed')
+// como si el streamer escribiera !levelup @usuario <stat> (ver
+// applyBossLevelUps, que valida el presupuesto disponible).
+function bossFicheLevelUp(user, stat) {
+  const ms = state.modeState;
+  const p = ms && ms.players[user];
+  if (!p || !['atk', 'hp', 'speed'].includes(stat)) return;
+  if (bossLevelUpsAvailable(ms, p) <= 0) return;
+  const requested = { atk: 0, hp: 0, speed: 0 };
+  requested[stat] = 1;
+  applyBossLevelUps(ms, state.channel || 'streamer', user, requested, true);
+  refreshBossSelectedFiche();
+}
+
+// Oculta la ficha del JEFE (si estaba visible), al dejar de pasar el cursor
+// sobre su tarjeta de nombre. La ventana del combatiente aliado seleccionado
+// es otra (ver clearBossSelection).
 function hideBossFiche() {
   const ms = state.modeState;
   if (ms && ms.bossFicheEl) ms.bossFicheEl.classList.remove('visible');
 }
 
-// Misma ficha que showBossFiche, pero para el Pokémon RIVAL (el jefe, o el
+// Ficha de información, pero para el Pokémon RIVAL (el jefe, o el
 // segundo jefe en la fase final con dos a la vez): se llama al pasar el
 // cursor sobre su tarjeta de nombre (#boss-name-text/#boss-name-text-2, ver
 // el mouseenter añadido en renderBoss/ensureBossZone2). A diferencia de la
@@ -2500,7 +2653,7 @@ function hideBossFiche() {
 // !habilidad1/!habilidad2) es exclusivo de los combatientes aliados, el
 // jefe no elige tipo de ataque, así que todos sus chips de tipo se pintan
 // iguales, sin resaltar. Por lo demás, siempre puede consultarse (a
-// diferencia de showBossFiche, no depende de que nadie esté combatiendo
+// diferencia de la ventana del combatiente seleccionado, no depende de que nadie esté combatiendo
 // ahora mismo: el jefe está siempre en pantalla, duelo en marcha o no).
 function showBossEnemyFiche(boss) {
   const ms = state.modeState;
@@ -2548,9 +2701,14 @@ function showBossEnemyFiche(boss) {
 // forma de destino).
 function applyBossSpriteAdjustment(spriteEl, dexId, scaleOverride) {
   if (!spriteEl) return;
-  const { offsetY, scaleAdj } = getBossSpriteAdjustment(dexId);
+  const { offsetY, scaleAdj, dropY, attackDropY } = getBossSpriteAdjustment(dexId);
   spriteEl.style.setProperty('--boss-offset-y', offsetY + 'px');
   spriteEl.style.setProperty('--boss-scale-adj', scaleOverride != null ? scaleOverride : scaleAdj);
+  // Bajada real del sprite (ver dropY/attackDropY en bossSpriteAdjustmentsDb.js
+  // y .boss-sprite.pmd-slot .pmd-frame en styles.css): la misma en todas las
+  // animaciones, más un extra solo durante Attack si la entrada lo define.
+  spriteEl.style.setProperty('--boss-drop-y', dropY + 'px');
+  spriteEl.style.setProperty('--boss-attack-drop-y', attackDropY + 'px');
 }
 
 // Muestra u oculta el cartel de comandos de la fase 1 (ver
@@ -2629,6 +2787,11 @@ function renderBoss() {
         <button class="boss-items-btn" id="boss-items-btn" title="Objetos" aria-label="Objetos">
           🎒<span class="boss-items-badge" id="boss-items-badge" style="display:none;"></span>
         </button>
+        <!-- Botón de debug (🛠️), justo a la derecha del de objetos: solo se ve
+             si se ha introducido el código "wawidebug" en Ajustes → Códigos
+             (ver syncBossDebugButton/openBossDebugPanel más abajo). Reutiliza
+             el estilo de .boss-items-btn, con su propia posición. -->
+        <button class="boss-items-btn boss-debug-btn" id="boss-debug-btn" title="Debug" aria-label="Debug" style="left:108px;display:none;">🛠️</button>
         <!-- Overlay del cofre: solo visible mientras haya al menos uno
              pendiente de abrir (ver ms.chestsAvailable, que sube al
              derrotar al jefe de la fase 10 o de la fase final de cada
@@ -2646,7 +2809,7 @@ function renderBoss() {
         </div>
         <!-- Indicador "Nivel X · Fase Y/10", centrado en la parte superior
              de la pantalla de juego (#boss-scene) (el cartel de comandos de
-             la fase 1 vive aparte, anclado a la esquina superior derecha,
+             la fase 1 vive aparte, anclado a la esquina inferior derecha,
              ver más abajo). Vive FUERA de #boss-map-inner para quedarse
              fijo en su sitio durante el zoom de cámara de la llegada del
              jefe de la fase final (ver bossZoomCameraTo más abajo). -->
@@ -2679,7 +2842,7 @@ function renderBoss() {
              montar esta plantilla, más abajo en esta misma función. Vive
              FUERA de .boss-top-banners (aunque comparte con él el mismo
              lenguaje visual), como elemento propio anclado a la esquina
-             superior derecha de la escena -ver .boss-commands-banner en
+             inferior derecha de la escena -ver .boss-commands-banner en
              styles.css-, en vez de apilado bajo el indicador de nivel. -->
         <div class="boss-commands-banner" id="boss-commands-banner" style="display:none;">
           <span class="boss-commands-banner-item"><b>!pokemon [nombre]</b><br>cambia de Pokémon</span>
@@ -2823,6 +2986,9 @@ function renderBoss() {
 
   const itemsBtn = $('boss-items-btn');
   if (itemsBtn) itemsBtn.onclick = () => openBossItemsPanel();
+  const debugBtn = $('boss-debug-btn');
+  if (debugBtn) debugBtn.onclick = () => openBossDebugPanel();
+  syncBossDebugButton();
   const chestBtn = $('boss-chest-btn');
   if (chestBtn) {
     // Antes abría el modal de golpe al pulsar; ahora se ve primero la
@@ -2896,15 +3062,12 @@ function createFighterSprite(user, slotIndex) {
   // combatiente (ver estilo en .boss-fighter-name en styles.css): el
   // sprite PMD en sí NO reacciona ni al clic ni al cursor (sigue con
   // pointer-events:none, ver .boss-fighter-sprite), solo esta pastilla
-  // con su nombre. Un clic elige a este combatiente para el duelo 1 vs 1
-  // (ver selectChallenger); pasar el cursor por encima muestra su ficha
-  // (nombre, Pokémon, tipos y estadísticas — ver showBossFiche), que ya
-  // comprueba por su cuenta que nadie esté combatiendo ni de camino al
-  // duelo ahora mismo.
-  nameEl.title = `@${user} · ${p.pokemon.name} — clic para que luche contra el jefe`;
-  nameEl.onclick = () => selectChallenger(user);
-  nameEl.onmouseenter = () => showBossFiche(user);
-  nameEl.onmouseleave = () => hideBossFiche();
+  // con su nombre. Un primer clic SELECCIONA al combatiente y abre su
+  // ventana de información (ver onFighterCardClick/selectBossFighter); un
+  // segundo clic sobre el ya seleccionado lo elige para el duelo 1 vs 1
+  // (ver selectChallenger). Pasar el cursor por encima ya no hace nada.
+  nameEl.title = `@${user} · ${p.pokemon.name} — clic para seleccionar y ver su ficha; clic de nuevo para que luche contra el jefe`;
+  nameEl.onclick = () => onFighterCardClick(user);
   el.appendChild(nameEl);
 
   // Barra de vida flotante: también hija del sprite, oculta por defecto y
@@ -3358,7 +3521,8 @@ function resolveBossChestChosen() {
 // Coliseo del modo Arena (con las mismas animaciones PMD de Walk/Attack/Hurt).
 // ---------------------------------------------------------------------
 
-// Se llama al hacer clic en la etiqueta de un combatiente ya apuntado. Si
+// Se llama al hacer SEGUNDO clic en la etiqueta de un combatiente ya
+// apuntado y seleccionado (ver onFighterCardClick). Si
 // ya había otro luchando (o caminando hacia su puesto), ese otro da media
 // vuelta y camina de regreso a su propio puesto (el jefe conserva la vida
 // tal cual estaba) mientras el nuevo elegido sale desde el suyo y recorre
@@ -3404,11 +3568,9 @@ function selectChallenger(user) {
     addChatMessage(null, `🔒 El streamer elige a @${user} para luchar primero: ya no se pueden cambiar más Pokémon ni objetos hasta la Fase 1 del nivel siguiente.`, 'system', { mirror: false });
     toast('🔒 Combatiente elegido: ya no se pueden cambiar Pokémon ni objetos hasta el nivel siguiente');
   }
-  // A partir de aquí deja de tener sentido consultar fichas: alguien va a
-  // pasar a combatir (o ya lo estaba haciendo otro al que se releva), así
-  // que la condición de showBossFiche (nadie combatiendo ni de camino) deja
-  // de cumplirse de inmediato.
-  hideBossFiche();
+  // A partir de aquí el combatiente deja de estar «seleccionado»: se va a
+  // plantar frente al jefe, así que se cierra su ventana de información.
+  clearBossSelection();
   const previousUser = ms.activeUser;
   if (previousUser) sendFighterHome(previousUser);
   ms.activeUser = user;
@@ -4563,6 +4725,59 @@ function destroyBossZone2() {
   if (zone2) zone2.remove();
 }
 
+// Contabilidad de una subida de nivel (se acaba de superar la fase final, 15,
+// del nivel actual): nivel +1 (o vuelta al 1 tras el último), fase a 1,
+// punto de guardado, mejora aleatoria del bando enemigo y reseteo de las
+// mejoras de los aliados. Vive aparte de spawnNewBoss para que el botón de
+// debug (ver debugAdvanceBossPhases) pueda saltarse varios niveles seguidos
+// reutilizando exactamente la misma lógica.
+function applyBossLevelUp(ms) {
+  ms.bossStage = 1;
+  ms.bossLevel = ms.bossLevel >= BOSS_TOTAL_LEVELS ? 1 : ms.bossLevel + 1;
+  // Nuevo nivel: se reabre la ventana de cambios de Pokémon y, para los
+  // objetos ya equipados, la posibilidad de quitarlos o cambiarlos (ver
+  // bossChangesAllowed) durante la fase 1 de este nivel — el streamer
+  // decide entonces, desde el panel de objetos 🎒, cuáles sueltan a sus
+  // combatientes (ver assignBossItem/openBossItemsPanel); ya no hay
+  // ningún desequipado automático masivo aquí.
+  ms.bossChangesLocked = false;
+  // Se fija de inmediato el nuevo punto de guardado (ver
+  // BOSS_PROGRESS_STORAGE_KEY/saveBossProgress), con ms.bossStage ya a 1
+  // (recién asignado arriba): si el streamer sale del modo Boss más
+  // tarde, o si más adelante todos los combatientes caen a la vez (ver
+  // triggerBossGameOver), la próxima partida retomará este nivel desde su
+  // fase 1 (ver loadSavedBossProgress en startBoss), con los objetos del
+  // almacén tal y como estén en este momento.
+  saveBossProgress(ms);
+  // Nuevo nivel: se reinicia el registro de Pokémon ya vistos (ver
+  // ms.bossLevelSeenIds/la exclusión más abajo), para que la regla de
+  // "no repetir dentro del nivel" empiece de cero en la pool del nivel
+  // que acaba de empezar.
+  ms.bossLevelSeenIds = new Set();
+  // Subida de nivel: el bando enemigo mejora una estadística al azar
+  // (ataque, vida o velocidad), acumulándose para lo que quede de
+  // partida (ver bossEffectiveStats). Mientras tanto, los aliados
+  // pierden las mejoras que hubieran invertido con !levelup en el nivel
+  // que acaba de terminar, para poder buildear desde cero en el nuevo
+  // nivel (ver handleBossLevelUp).
+  const stat = ['atk', 'hp', 'speed'][Math.floor(Math.random() * 3)];
+  ms.enemyLevels[stat]++;
+  // Al perder sus mejoras de !levelup del nivel que acaba de terminar, la
+  // vida máxima de cada aliado vuelve a la base (BOSS_PLAYER_HP): como ya
+  // se les acaba de curar del todo (o revivir) al derrotar al jefe de la
+  // fase final (ver bossDefeated, justo antes de esta llamada), su vida
+  // actual persistida se deja también a tope de esa nueva base, para que
+  // nunca quede por encima de su (ahora menor) vida máxima.
+  Object.values(ms.players).forEach(p => { p.levels = freshLevels(); p.hp = BOSS_PLAYER_HP; });
+  Object.keys(ms.players).forEach(u => updateWaitingFighterHP(u));
+  // Los bots no pueden escribir !levelup por chat para elegir sus
+  // mejoras del nuevo nivel: se les reparten solas y al azar entre
+  // ataque/vida/velocidad justo después del reseteo de arriba (ver
+  // randomizeBotLevels), igual que si el streamer las hubiera repartido
+  // por ellos.
+  Object.values(ms.players).forEach(p => { if (p.isBot) randomizeBotLevels(ms, p); });
+}
+
 function spawnNewBoss() {
   const ms = state.modeState;
   const zone = $('boss-enemies-zone');
@@ -4585,50 +4800,7 @@ function spawnNewBoss() {
   // último, ver BOSS_TOTAL_LEVELS).
   const clearedLevel = ms.bossLevel;
   if (leveledUp) {
-    ms.bossStage = 1;
-    ms.bossLevel = ms.bossLevel >= BOSS_TOTAL_LEVELS ? 1 : ms.bossLevel + 1;
-    // Nuevo nivel: se reabre la ventana de cambios de Pokémon y, para los
-    // objetos ya equipados, la posibilidad de quitarlos o cambiarlos (ver
-    // bossChangesAllowed) durante la fase 1 de este nivel — el streamer
-    // decide entonces, desde el panel de objetos 🎒, cuáles sueltan a sus
-    // combatientes (ver assignBossItem/openBossItemsPanel); ya no hay
-    // ningún desequipado automático masivo aquí.
-    ms.bossChangesLocked = false;
-    // Se fija de inmediato el nuevo punto de guardado (ver
-    // BOSS_PROGRESS_STORAGE_KEY/saveBossProgress), con ms.bossStage ya a 1
-    // (recién asignado arriba): si el streamer sale del modo Boss más
-    // tarde, o si más adelante todos los combatientes caen a la vez (ver
-    // triggerBossGameOver), la próxima partida retomará este nivel desde su
-    // fase 1 (ver loadSavedBossProgress en startBoss), con los objetos del
-    // almacén tal y como estén en este momento.
-    saveBossProgress(ms);
-    // Nuevo nivel: se reinicia el registro de Pokémon ya vistos (ver
-    // ms.bossLevelSeenIds/la exclusión más abajo), para que la regla de
-    // "no repetir dentro del nivel" empiece de cero en la pool del nivel
-    // que acaba de empezar.
-    ms.bossLevelSeenIds = new Set();
-    // Subida de nivel: el bando enemigo mejora una estadística al azar
-    // (ataque, vida o velocidad), acumulándose para lo que quede de
-    // partida (ver bossEffectiveStats). Mientras tanto, los aliados
-    // pierden las mejoras que hubieran invertido con !levelup en el nivel
-    // que acaba de terminar, para poder buildear desde cero en el nuevo
-    // nivel (ver handleBossLevelUp).
-    const stat = ['atk', 'hp', 'speed'][Math.floor(Math.random() * 3)];
-    ms.enemyLevels[stat]++;
-    // Al perder sus mejoras de !levelup del nivel que acaba de terminar, la
-    // vida máxima de cada aliado vuelve a la base (BOSS_PLAYER_HP): como ya
-    // se les acaba de curar del todo (o revivir) al derrotar al jefe de la
-    // fase final (ver bossDefeated, justo antes de esta llamada), su vida
-    // actual persistida se deja también a tope de esa nueva base, para que
-    // nunca quede por encima de su (ahora menor) vida máxima.
-    Object.values(ms.players).forEach(p => { p.levels = freshLevels(); p.hp = BOSS_PLAYER_HP; });
-    Object.keys(ms.players).forEach(u => updateWaitingFighterHP(u));
-    // Los bots no pueden escribir !levelup por chat para elegir sus
-    // mejoras del nuevo nivel: se les reparten solas y al azar entre
-    // ataque/vida/velocidad justo después del reseteo de arriba (ver
-    // randomizeBotLevels), igual que si el streamer las hubiera repartido
-    // por ellos.
-    Object.values(ms.players).forEach(p => { if (p.isBot) randomizeBotLevels(ms, p); });
+    applyBossLevelUp(ms);
   } else {
     ms.bossStage++;
   }
@@ -4824,8 +4996,23 @@ function spawnNewBoss() {
     // medio entre ambos puestos, para que se vean los dos a la vez, y la
     // escala (ver bossFinalStageZoomScale) tiene en cuenta al más grande
     // de los dos para no recortarlo.
-    zone.addEventListener('transitionend', (e) => {
-      if (e.propertyName !== 'left') return;
+    // IMPORTANTE: "transitionend" BURBUJEA, así que también llegan aquí las
+    // transiciones de los hijos de la zona (p.ej. la barra de vida del jefe
+    // llenándose, que termina ANTES que el trayecto), además de otras
+    // propiedades. Antes el listener era {once:true} y salía si no era la
+    // propiedad "left": esos eventos ajenos lo consumían y el zoom no
+    // arrancaba (solo ocurría en algunas fases 15). Ahora solo se atiende
+    // el "left" de la propia zona, y un temporizador de respaldo (algo
+    // mayor que la transición, 1.1s en .boss-enemies-zone) cubre el caso de
+    // que el evento no llegue nunca (pestaña en segundo plano, etc.).
+    let zoomStarted = false;
+    const startFinalStageZoom = () => {
+      if (zoomStarted) return;
+      zoomStarted = true;
+      zone.removeEventListener('transitionend', onZoneTransitionEnd);
+      clearTimeout(zoomFallbackTimer);
+      // La partida pudo cambiar (salir del modo, otro jefe) mientras llegaba.
+      if (state.modeState !== ms) return;
       const zoomY = zone2 ? (BOSS_ENEMY_SPOT.y + BOSS_ENEMY_SPOT_2.y) / 2 : BOSS_ENEMY_SPOT.y;
       const zoomScale = bossFinalStageZoomScale(ms, !!zone2);
       // Mientras dura el zoom (BOSS_FINAL_STAGE_ZOOM_MS) el streamer no
@@ -4851,7 +5038,13 @@ function spawnNewBoss() {
         scheduleBossTick();
         maybeStartBossAfkChallengerVote();
       }, BOSS_FINAL_STAGE_ZOOM_MS);
-    }, { once: true });
+    };
+    const onZoneTransitionEnd = (e) => {
+      if (e.target !== zone || e.propertyName !== 'left') return;
+      startFinalStageZoom();
+    };
+    const zoomFallbackTimer = setTimeout(startFinalStageZoom, 1500);
+    zone.addEventListener('transitionend', onZoneTransitionEnd);
   }
 
   if (leveledUp) {
@@ -4888,4 +5081,138 @@ function spawnNewBoss() {
   // pasar a 'levelSelect' arriba (la votación, si toca, se dispara más
   // tarde desde advanceBossLevelSelect al pulsar "Avanzar").
   if (!leveledUp) maybeStartBossAfkChallengerVote();
+}
+
+/* ---------------------------------------------------------
+   DEBUG — botón 🛠️ del Boss Cooperativo
+   -----------------------------------------------------------
+   Se desbloquea escribiendo el código "wawidebug" en Ajustes → Códigos
+   (ver codes.js): hasta entonces el botón permanece oculto. Ofrece dos
+   atajos para probar el modo sin tener que jugar toda la partida:
+     - Matar al enemigo actual (debugKillBoss): lo deja a 0 de vida y
+       sigue exactamente el mismo camino que una derrota normal (ver
+       resolveBossSlotFaint/bossDefeated): recompensas, cofre en las
+       fases 10 y 15, aparición del siguiente enemigo...
+     - Avanzar 3 fases (debugAdvanceBossPhases): salta directamente tres
+       fases por delante (cruzando de nivel si hace falta), sin repartir
+       recompensas ni cofres de las fases saltadas.
+   Ambas solo funcionan con el combate en curso (ms.phase === 'fight').
+   --------------------------------------------------------- */
+const BOSS_DEBUG_ADVANCE_PHASES = 3;
+
+// Muestra u oculta el botón según el código esté o no introducido. Se llama
+// al montar la escena (ver renderBoss) y cada vez que se desbloquea algo
+// desde Ajustes (ver UNLOCKS_CHANGED_EVENT), así que aparece al instante
+// aunque el código se escriba en pleno combate.
+function syncBossDebugButton() {
+  const btn = $('boss-debug-btn');
+  if (!btn) return;
+  btn.style.display = isBossDebugUnlocked() ? 'flex' : 'none';
+}
+document.addEventListener(UNLOCKS_CHANGED_EVENT, syncBossDebugButton);
+
+function openBossDebugPanel() {
+  const ms = state.modeState;
+  if (!ms || !isBossDebugUnlocked()) return;
+  showModal(
+    '🛠️ Debug · Boss Cooperativo',
+    `<p style="text-align:center;">Nivel ${ms.bossLevel} · Fase ${ms.bossStage}/${BOSS_STAGES_PER_LEVEL}<br><b>${escapeHtml(bossDisplayName(ms))}</b></p>
+     <p style="text-align:center;color:var(--muted);font-size:12px;">Solo funciona con el combate en curso (no durante cofres, zoom de jefe ni selección de nivel).</p>`,
+    [
+      { label: '💀 Matar al enemigo actual', onClick: debugKillBoss },
+      { label: `⏩ Avanzar ${BOSS_DEBUG_ADVANCE_PHASES} fases`, onClick: () => debugAdvanceBossPhases(BOSS_DEBUG_ADVANCE_PHASES) },
+      { label: 'Cerrar', class: 'btn-secondary' },
+    ]
+  );
+}
+
+function debugKillBoss() {
+  const ms = state.modeState;
+  if (!ms || ms.phase !== 'fight') { toast('🛠️ Debug: solo disponible con el combate en curso.'); return; }
+  const slots = aliveBossSlots(ms);
+  if (!slots.length) { toast('🛠️ Debug: el enemigo ya ha caído.'); return; }
+  slots.forEach(slot => {
+    slot.boss.currentHp = 0;
+    if (slot.sprite) slot.sprite.play('Hurt', arenaDirectionFor('right'), false, null, BOSS_ANIM_SPEED);
+  });
+  updateBossHPBar();
+  playBossFaint();
+  addChatMessage(null, `🛠️ [DEBUG] ${bossDisplayName(ms)} eliminado.`, 'system', { mirror: false });
+  // Con dos jefes vivos a la vez se resuelve UNA sola vez, por el primero:
+  // el otro se marca como ya anunciado (y se atenúa) para que
+  // resolveBossSlotFaint no lance bossDefeated dos veces.
+  slots.slice(1).forEach(slot => {
+    slot.boss._faintAnnounced = true;
+    const zoneEl = $(slot.zoneId);
+    if (zoneEl) zoneEl.style.opacity = '0.35';
+  });
+  resolveBossSlotFaint(slots[0]);
+}
+
+function debugAdvanceBossPhases(count) {
+  const ms = state.modeState;
+  if (!ms || ms.phase !== 'fight') { toast('🛠️ Debug: solo disponible con el combate en curso.'); return; }
+  // Si el enemigo ya ha caído, el siguiente ya está en camino (ver
+  // bossDefeated): avanzar ahora lo duplicaría.
+  if (allBossesDefeated(ms)) { toast('🛠️ Debug: espera a que aparezca el siguiente enemigo.'); return; }
+
+  const fromLevel = ms.bossLevel;
+  const fromStage = ms.bossStage;
+  // Cruza al menos un final de nivel (fase 15) si alguno de los pasos
+  // parte de la fase final.
+  const crossesLevel = fromStage + (count - 1) >= BOSS_FINAL_STAGE;
+
+  // 1. Se cierra el duelo en curso (o el trayecto hacia él), como hace
+  // bossDefeated: el combatiente vuelve a su puesto y el ranking de daño
+  // empieza de cero contra el nuevo enemigo.
+  const duelUser = ms.activeUser;
+  ms.activeUser = null;
+  ms.battle = null;
+  if (duelUser) {
+    setFighterGrounded(duelUser, true);
+    sendFighterHome(duelUser);
+  }
+  Object.values(ms.players).forEach(p => { p.dmg = 0; });
+  renderBossPlayersZone();
+  renderDuelPanel();
+  renderBossRanking();
+
+  // Si se cruza un nivel, todos recuperan la vida y los derrotados
+  // despiertan, igual que al caer el jefe de la fase final (ver
+  // bossDefeated).
+  if (crossesLevel) {
+    Object.entries(ms.players).forEach(([u, p]) => {
+      p.hp = playerEffectiveStats(ms, u).maxHp;
+      updateWaitingFighterHP(u);
+    });
+    Object.keys(ms.fighterSprites).forEach(u => { if (u !== duelUser) playFighterRestAnim(u); });
+  }
+
+  // 2. Pasos intermedios: solo mueven el contador de fase (y, al cruzar
+  // un final de nivel, la contabilidad de subida de nivel de siempre). El
+  // último paso lo da spawnNewBoss, que además monta al enemigo nuevo.
+  const unlockedSprites = [];
+  for (let i = 0; i < count - 1; i++) {
+    if (isFinalStage(ms)) {
+      unlockedSprites.push(...unlockBossLevelSprites(ms.bossLevel));
+      applyBossLevelUp(ms);
+    } else {
+      ms.bossStage++;
+    }
+  }
+
+  addChatMessage(null, `🛠️ [DEBUG] Avanzando ${count} fases desde el Nivel ${fromLevel}, Fase ${fromStage}. Las fases saltadas no dan recompensas ni cofres.`, 'system', { mirror: false });
+  if (unlockedSprites.length) {
+    addChatMessage(null, `🔓 ¡Sprites desbloqueados: ${unlockedSprites.join(', ')}! Puedes consultar sus comandos en Ajustes → Comandos de Pokémon.`, 'system');
+  }
+
+  // 3. Último paso. Si es la subida de nivel, se hace con el mismo fundido
+  // a negro que en partida (con el combate en pausa mientras dura, igual
+  // que 'chestPause' en el flujo normal); si no, directamente.
+  if (isFinalStage(ms)) {
+    ms.phase = 'chestPause';
+    runBossLevelTransition();
+  } else {
+    spawnNewBoss();
+  }
 }

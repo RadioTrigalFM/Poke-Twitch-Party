@@ -204,13 +204,13 @@ const HOWTO_CONTENT = {
     intro: 'Un jefe interminable: en cuanto cae uno, aparece otro distinto. Los espectadores se apuntan una única vez y el Streamer decide, combate tras combate, quién sube a luchar 1 contra 1 contra el jefe actual.',
     commands: [
       { cmd: '!pokemon [nombre]', desc: 'Apuntarte en el lobby (o, mientras dure la fase 1 de cada nivel, cambiar el Pokémon con el que ya estabas apuntado). También vale escribir solo !nombre (ej. !pikachu).' },
-      { cmd: '!habilidad1 / !habilidad2', desc: 'Cambiar el tipo de tu ataque, si tu Pokémon tiene dos tipos.' },
-      { cmd: '!levelup ataque / vida / velocidad', desc: 'Gastar tu mejora disponible del nivel actual en esa estadística.' },
+      { cmd: '!habilidad1 / !habilidad2', desc: 'Cambiar el tipo de tu ataque, si tu Pokémon tiene dos tipos (el Streamer también puede hacerlo desde la ventana de información del combatiente seleccionado).' },
+      { cmd: '!levelup ataque / vida / velocidad', desc: 'Gastar tu mejora disponible del nivel actual en esa estadística (también puedes escribir !levelup info para ver cuántas te quedan; el Streamer puede repartirlas por ti desde la ventana de información).' },
       { cmd: '!stats', desc: 'Consultar por chat tus estadísticas de combate actuales: ataque, vida, % de velocidad extra y mejoras !levelup pendientes.' },
       { cmd: '!ready', desc: 'Gesto cosmético mientras esperas tu turno: tu Pokémon hace la animación de "estoy listo". No consume turno ni afecta al combate.' },
     ],
     roles: [
-      { icon: '🎤', name: 'Streamer', tag: 'Decide quién sube a luchar', color: 'var(--red)', desc: 'Hace clic sobre un combatiente ya apuntado para que suba a pelear 1 contra 1 contra el jefe; cuando cae, elige a otro para seguir desgastándolo. También reparte los objetos de los cofres entre los combatientes.' },
+      { icon: '🎤', name: 'Streamer', tag: 'Decide quién sube a luchar', color: 'var(--red)', desc: 'Hace clic en la tarjeta de nombre de un combatiente para seleccionarlo: se abre su ventana de información en la esquina superior derecha y se mantiene mientras siga seleccionado. Desde ahí puede repartirle sus mejoras pendientes (botones +) y cambiar el tipo de su ataque haciendo clic en uno de sus tipos. Un segundo clic sobre la misma tarjeta lo manda a pelear 1 contra 1 contra el jefe; cuando cae, elige a otro para seguir desgastándolo. También reparte los objetos de los cofres entre los combatientes.' },
       { icon: '💬', name: 'Chat', tag: 'Elige Pokémon y mejoras', color: 'var(--blue)', desc: 'Se apunta una única vez con !pokemon y decide sus propias mejoras con !levelup; el combate en sí es automático, nadie ataca por comando.' },
     ],
     cycle: [
@@ -223,7 +223,7 @@ const HOWTO_CONTENT = {
     phaseTypes: [
       { icon: '👊', label: 'Fase normal', badge: 'La mayoría de fases', color: 'var(--blue)', desc: 'Un combatiente contra un enemigo de tamaño normal, igual que un rival cualquiera del nivel.' },
       { icon: '📦', label: 'Fase 10: mini-jefe', badge: 'A mitad de nivel', color: 'var(--yellow)', desc: 'Un Pokémon fijo (no al azar) con más vida que un enemigo normal. Al derrotarlo cae un cofre con un objeto a elegir.' },
-      { icon: '👹', label: 'Fase 15: jefe final', badge: 'Última fase del nivel', color: 'var(--red)', desc: 'El enemigo aparece con su sprite extra grande. Al derrotarlo se sube al nivel siguiente y cae otro cofre con objeto.' },
+      { icon: '👹', label: 'Fase 15: jefe final', badge: 'Última fase del nivel', color: 'var(--red)', desc: 'El enemigo aparece con su sprite extra grande y la cámara hace zoom sobre él unos segundos antes de empezar. Al derrotarlo se sube al nivel siguiente y cae otro cofre con objeto.' },
     ],
     stats: [
       { icon: '❤️', value: '120', label: 'Vida base', desc: 'Igual para el jefe y para cada combatiente, antes de aplicar mejoras de !levelup u objetos.' },

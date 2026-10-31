@@ -7,17 +7,46 @@ import { $, normalizeAnswer, toast } from './utils.js';
    Cuadro de texto de la pantalla de Ajustes donde el streamer puede
    introducir códigos secretos. Cada código desbloquea un modo de juego,
    que pasa a aparecer en la pantalla de selección de modo (las tarjetas
-   con data-unlock="<modo>" en index.html están ocultas hasta entonces).
+   con data-unlock="<modo>" en index.html están ocultas hasta entonces),
+   o bien una función oculta (kind: 'feature'), como el botón de debug del
+   Boss Cooperativo (código "wawidebug", ver BOSS_DEBUG_FLAG).
    Los desbloqueos se guardan en localStorage, así que se conservan entre
    sesiones, igual que el resto de preferencias de Ajustes.
    ========================================================= */
 
 const UNLOCKS_STORAGE_KEY = 'pokekukoro_unlocked_modes';
 
-// código (normalizado: sin tildes ni mayúsculas) -> modo que desbloquea.
+// Marca (guardada junto a los modos desbloqueados, en state.unlockedModes)
+// que indica que el botón de debug del Boss Cooperativo está desbloqueado
+// (ver isBossDebugUnlocked y openBossDebugPanel en boss.js). No corresponde
+// a ninguna tarjeta del menú, así que syncUnlockedModeCards la ignora.
+const BOSS_DEBUG_FLAG = 'bossdebug';
+
+// Marca que indica que la canción alternativa «Taza» de La Charca está
+// desbloqueada (código "soyunataza", ver isCharcaTazaUnlocked y charca.js).
+// Igual que BOSS_DEBUG_FLAG, no corresponde a ninguna tarjeta del menú.
+const CHARCA_TAZA_FLAG = 'charcataza';
+
+// Evento que se lanza sobre document cada vez que un código desbloquea algo
+// nuevo, para que las pantallas ya abiertas (p.ej. el Boss en pleno combate)
+// se actualicen al momento sin tener que reiniciarse.
+export const UNLOCKS_CHANGED_EVENT = 'pk-unlocks-changed';
+
+// código (normalizado: sin tildes ni mayúsculas) -> lo que desbloquea.
+// kind: 'feature' = función oculta en vez de un modo de juego.
 const CODES = {
   shinycolo: { mode: 'charca', label: 'La Charca' },
+  wawidebug: { mode: BOSS_DEBUG_FLAG, label: 'Debug del Boss Cooperativo', kind: 'feature' },
+  soyunataza: { mode: CHARCA_TAZA_FLAG, label: 'Canción «Taza» de La Charca', kind: 'feature' },
 };
+
+export function isCharcaTazaUnlocked() {
+  return state.unlockedModes.has(CHARCA_TAZA_FLAG);
+}
+
+export function isBossDebugUnlocked() {
+  return state.unlockedModes.has(BOSS_DEBUG_FLAG);
+}
 
 function loadUnlockedModes() {
   try {
@@ -65,15 +94,21 @@ function submitCode() {
     return;
   }
   input.value = '';
+  const isFeature = entry.kind === 'feature';
   if (state.unlockedModes.has(entry.mode)) {
-    showCodeFeedback(`ℹ️ Ya tenías desbloqueado el modo «${entry.label}».`, 'is-info');
+    showCodeFeedback(isFeature
+      ? `ℹ️ Ya tenías desbloqueado: ${entry.label}.`
+      : `ℹ️ Ya tenías desbloqueado el modo «${entry.label}».`, 'is-info');
     return;
   }
   state.unlockedModes.add(entry.mode);
   saveUnlockedModes();
   syncUnlockedModeCards();
-  showCodeFeedback(`✅ ¡Código aceptado! Nuevo modo de juego desbloqueado: «${entry.label}».`, 'is-ok');
-  toast(`🔓 Modo desbloqueado: ${entry.label}`);
+  document.dispatchEvent(new CustomEvent(UNLOCKS_CHANGED_EVENT));
+  showCodeFeedback(isFeature
+    ? `✅ ¡Código aceptado! Desbloqueado: ${entry.label}.`
+    : `✅ ¡Código aceptado! Nuevo modo de juego desbloqueado: «${entry.label}».`, 'is-ok');
+  toast(isFeature ? `🔓 Desbloqueado: ${entry.label}` : `🔓 Modo desbloqueado: ${entry.label}`);
 }
 
 export function initCodes() {
